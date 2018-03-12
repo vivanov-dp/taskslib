@@ -1,28 +1,25 @@
 #include "TasksQueue.h"
 
-#include "Atomic/IO/Log.h"
-#include "Atomic/Core/CoreEvents.h"
-#include "Atomic/Core/Defensive.h"
-
 #include <tuple>
 #include <chrono>
 #include <thread>
 
 namespace TasksLib
 {
-	class TaskThread : public Atomic::Thread
+	class TaskThread : public std::thread
 	{
 	public:
-		TaskThread(TasksQueue& queue, const uint32_t threadNum, const bool ignoreBlocking)
-			: queue_(queue)
+		template <class F, class... Args>
+		explicit TaskThread(F&& f, Args&&... args) 
+			: std::thread(f, args...) {
+		};
+		template <class F, class... Args>
+		explicit TaskThread(TasksQueue& queue, const uint32_t threadNum, const bool ignoreBlocking, F&& f, Args&&... args)
+			: std::thread(f, args...)
+			, queue_(queue)
 			, threadNum_(threadNum)
 			, ignoreBlocking_(ignoreBlocking)
 		{
-		}
-
-		virtual void ThreadFunction()
-		{
-			queue_.ThreadExecuteTasks(threadNum_, ignoreBlocking_);
 		}
 
 	private:
@@ -30,40 +27,16 @@ namespace TasksLib
 		uint32_t threadNum_;
 		bool ignoreBlocking_;
 	};
-	class TaskScheduleThread : public Atomic::Thread
-	{
-	public:
-		TaskScheduleThread(TasksQueue& queue, const uint32_t threadNum)
-			: queue_(queue)
-			, threadNum_(threadNum)
-		{
-		}
-
-		virtual void ThreadFunction()
-		{
-			queue_.ThreadExecuteScheduledTasks(threadNum_);
-		}
-
-	private:
-		TasksQueue& queue_;
-		uint32_t threadNum_;
-	};
 
 	// ===== TasksQueue::Configuration ==================================================
 	TasksQueue::Configuration::Configuration()
-		: Configuration(6, 2)
-	{
-	}
+		: Configuration(6, 2) {}
 	TasksQueue::Configuration::Configuration(unsigned blocking, unsigned nonBlocking)
-		: Configuration(blocking, nonBlocking, 0)
-	{
-	}
+		: Configuration(blocking, nonBlocking, 0) {}
 	TasksQueue::Configuration::Configuration(unsigned blocking, unsigned nonBlocking, unsigned scheduling)
 		: blockingThreads_(blocking)
 		, nonBlockingThreads_(nonBlocking)
-		, schedulingThreads_(scheduling)
-	{
-	}
+		, schedulingThreads_(scheduling) {}
 
 	// ===== TasksQueue =================================================================
 	TasksQueue::TasksQueue()
@@ -84,14 +57,12 @@ namespace TasksLib
 
 		if (isInitialized_)
 		{
-			ATOMIC_ASSERT(false);
 			return;
 		}
 
 		CreateThreads(configuration.blockingThreads_, configuration.nonBlockingThreads_, configuration.schedulingThreads_);
 
 		isInitialized_ = true;
-		ATOMIC_LOGINFO("Initialized TasksQueue");
 	}
 	void TasksQueue::ShutDown()
 	{
@@ -106,16 +77,16 @@ namespace TasksLib
 		scheduleCondition_.notify_all();
 		for (auto thread : threads_)
 		{
-			thread->Stop();
+			thread->join();
 		}
 		for (auto thread : schedulingThreads_)
 		{
-			thread->Stop();
+			thread->join();
 		}
 
 		{
 			std::lock_guard<std::mutex> guard(dataMutex_);
-			threads_.Clear();
+			threads_.clear();
 			isInitialized_ = false;
 		}
 	}
@@ -132,8 +103,6 @@ namespace TasksLib
 		{
 			return false;
 		}
-
-		ATOMIC_ASSERT(isInitialized_);
 
 		if (task->suspendTime_ > std::chrono::milliseconds(0))
 		{
@@ -153,7 +122,7 @@ namespace TasksLib
 			{
 				{
 					std::lock_guard<std::mutex> lockTask(tasksMutex_);
-					tasks_.Push(task);
+					tasks_.push_back(task);
 				}
 
 				tasksCondition_.notify_all();
@@ -161,7 +130,7 @@ namespace TasksLib
 			else
 			{
 				std::lock_guard<std::mutex> lockResponse(mtTasksMutex_);
-				mtTasks_.Push(task);
+				mtTasks_.push_back(task);
 			}
 
 			task->status_ = TaskStatus::TASK_IN_QUEUE;
@@ -178,25 +147,23 @@ namespace TasksLib
 
 	void TasksQueue::ThreadExecuteTasks(const uint32_t threadNum, const bool ignoreBlocking)
 	{
-		ATOMIC_LOGDEBUGF("Thread %d starting: %s", threadNum, (ignoreBlocking ? "non-blocking" : "blocking"));
 		for (;;)
 		{
-			std::shared_ptr<Task> task = nullptr;
+			TaskPtr task = nullptr;
 			{
 				std::unique_lock<std::mutex> lockTasks(tasksMutex_);
 
-				while (!shutDown_ && tasks_.Empty())
+				while (!shutDown_ && tasks_.empty())
 				{
 					tasksCondition_.wait(lockTasks);
 				}
 
 				if (shutDown_)
 				{
-					ATOMIC_LOGINFOF("Thread %d: shut down", threadNum);
 					break;
 				}
 
-				task = tasks_.Front();
+				task = tasks_.front();
 				if (task)
 				{
 					std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
@@ -208,7 +175,7 @@ namespace TasksLib
 					}
 					else
 					{
-						tasks_.PopFront();
+						tasks_.erase(tasks_.begin());
 					}
 				}
 			}
@@ -222,10 +189,9 @@ namespace TasksLib
 	}
 	void TasksQueue::ThreadExecuteScheduledTasks(const uint32_t threadNum)
 	{
-		ATOMIC_LOGDEBUGF("Thread %d (scheduling) starting", threadNum);
 		for (;;)
 		{
-			Atomic::List<std::shared_ptr<Task>> runTasks;
+			std::vector<TaskPtr> runTasks;
 
 			{
 				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
@@ -237,7 +203,6 @@ namespace TasksLib
 
 				if (shutDown_)
 				{
-					ATOMIC_LOGINFOF("Thread %d (scheduling): shut down", threadNum);
 					break;
 				}
 
@@ -248,22 +213,21 @@ namespace TasksLib
 					auto task = it->second;
 					std::unique_lock<std::mutex> lockTask(task->GetDataMutex_());
 					task->suspendTime_ = std::chrono::milliseconds(0);
-					runTasks.Push(task);
-					ATOMIC_LOGDEBUGF("Thread %d (scheduling): resume task", threadNum);
+					runTasks.push_back(task);
 					it = scheduledTasks_.erase(it);
 				}
 
 				scheduleEarliest_ = (it != scheduledTasks_.end()) ? it->first : scheduleTimePoint::max();
 			}
 
-			while (!runTasks.Empty())
+			while (!runTasks.empty())
 			{
-				auto task = runTasks.Front();
+				auto task = runTasks.back();
 				++stats_.resumed_;
 				--stats_.waiting_;
 				--stats_.total_;		// AddTask will increase this back
 				AddTask(task);
-				runTasks.PopFront();
+				runTasks.pop_back();
 			}
 		}
 	}
@@ -279,21 +243,21 @@ namespace TasksLib
 			scheduleCondition_.notify_one();
 		}
 
-		std::shared_ptr<Task> task = nullptr;
+		TaskPtr task = nullptr;
 		{
-			Atomic::List<std::shared_ptr<Task>> runTasks;
+			std::vector<TaskPtr> runTasks;
 
 			{
 				std::lock_guard<std::mutex> lockTasks(mtTasksMutex_);
-				if (mtTasks_.Empty())
+				if (mtTasks_.empty())
 				{
 					return;
 				}
 
-				while (!mtTasks_.Empty())
+				while (!mtTasks_.empty())
 				{
-					task = mtTasks_.Front();
-					mtTasks_.PopFront();
+					task = mtTasks_.back();
+					mtTasks_.pop_back();
 
 					if (task)
 					{
@@ -301,7 +265,7 @@ namespace TasksLib
 
 						if (task->GetPriority_() >= runningPriority_)
 						{
-							runTasks.Push(task);
+							runTasks.push_back(task);
 						}
 						else
 						{
@@ -311,41 +275,34 @@ namespace TasksLib
 				}
 			}
 
-			while (!runTasks.Empty())
+			while (!runTasks.empty())
 			{
-				task = runTasks.Front();
+				task = runTasks.back();
 				task->Execute(this, task);
 				RescheduleTask(task);
-				runTasks.PopFront();
+				runTasks.pop_back();
 			}
 		}
 	}
 
 	void TasksQueue::CreateThreads(const unsigned count, const unsigned countNonBlocking, const unsigned countScheduling)
 	{
-#ifdef ATOMIC_THREADING
 		uint32_t i;
 		for (i = 0; i < countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TaskThread>(*this, i, true);
-			threads_.Push(thread);
-			thread->Run();
+			auto thread = std::make_shared<TaskThread>(*this, i, true, &TasksQueue::ThreadExecuteTasks, this, i, true);
+			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TaskThread>(*this, i, false);
-			threads_.Push(thread);
-			thread->Run();
+			auto thread = std::make_shared<TaskThread>(*this, i, false, &TasksQueue::ThreadExecuteTasks, this, i, false);
+			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking + countScheduling; ++i)
 		{
-			auto thread = std::make_shared<TaskScheduleThread>(*this, i);
-			schedulingThreads_.Push(thread);
-			thread->Run();
+			auto thread = std::make_shared<TaskThread>(*this, i, false, &TasksQueue::ThreadExecuteScheduledTasks, this, i);
+			schedulingThreads_.push_back(thread);
 		}
-#else
-		ATOMIC_LOGERROR("Can not create request threads as threading is disabled");
-#endif
 	}
 	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task)
 	{
@@ -375,86 +332,61 @@ namespace TasksLib
 		stats.completed_ = reset ? stats_.completed_.exchange(0) : stats_.completed_.load();
 		stats.suspended_ = reset ? stats_.suspended_.exchange(0) : stats_.suspended_.load();
 		stats.resumed_ = reset ? stats_.resumed_.exchange(0) : stats_.resumed_.load();
-		// stats.waiting_ = reset ? stats_.waiting_.exchange(0) : stats_.waiting_.load();
-		// stats.total_ = reset ? stats_.total_.exchange(0) : stats_.total_.load();
 
 		return stats;
 	}
 
 
-	// ===== TasksQueueAtomic ===========================================================
-	TasksQueueAtomic::TasksQueueAtomic(Atomic::Context* context)
-		: Object(context)
-		, TasksQueue()
-	{
-		SubscribeToEvent(Atomic::E_UPDATE, ATOMIC_HANDLER(TasksQueueAtomic, HandleUpdate));
-	}
-	TasksQueueAtomic::~TasksQueueAtomic()
-	{
-	}
-
-	void TasksQueueAtomic::HandleUpdate(Atomic::StringHash eventType, Atomic::VariantMap& eventData)
-	{
-		Update();
-	}
-
 
 	// ===== TasksQueueContainer ========================================================
-	TasksQueuesContainer::TasksQueuesContainer(Atomic::Context* context)
-		: Object(context)
-		, isInitialized_(false)
-	{
-		SubscribeToEvent(Atomic::E_UPDATE, ATOMIC_HANDLER(TasksQueuesContainer, HandleUpdate));
-	}
-	TasksQueuesContainer::~TasksQueuesContainer()
-	{
+	TasksQueuesContainer::TasksQueuesContainer()
+		: isInitialized_(false) {};
+	TasksQueuesContainer::~TasksQueuesContainer() {
 		ShutDown();
 	}
 
-	void TasksQueuesContainer::Initialize()
-	{
-		ATOMIC_ASSERT(!isInitialized_);
-
+	void TasksQueuesContainer::Initialize() {
 		isInitialized_ = true;
-		ATOMIC_LOGINFO("Initialized TasksQueueContainer");
 	}
 
-	void TasksQueuesContainer::ShutDown()
-	{
+	void TasksQueuesContainer::ShutDown() {
 		isInitialized_ = false;
 
-		for (auto& it : queueMap_)
-		{
+		for (auto& it : queueMap_) {
 			it.second.ShutDown();
 		}
 	}
 
-	TasksQueue& TasksQueuesContainer::GetQueue(const std::string& queueName)
-	{
-		ATOMIC_ASSERT(isInitialized_);
+	TasksQueue* TasksQueuesContainer::GetQueue(const std::string& queueName) {
+		if (!isInitialized_) {
+			return nullptr;
+		}
 
 		auto queueIt = queueMap_.find(queueName);
-		ATOMIC_ASSERT(queueIt != queueMap_.end());
+		if (queueIt == queueMap_.end()) {
+			return nullptr;
+		}
 
-		return queueIt->second;
+		return &(queueIt->second);
 	}
 
 	void TasksQueuesContainer::CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration)
 	{
 		auto queueIt = queueMap_.find(queueName);
-		AssertReturnUnless(queueIt == queueMap_.end());
+		if (queueIt != queueMap_.end()) {
+			return;
+		}
 
 		auto pair = queueMap_.emplace(std::piecewise_construct, std::forward_as_tuple(queueName), std::forward_as_tuple());
 		queueIt = pair.first;
 		queueIt->second.Initialize(configuration);
 	}
 
-	void TasksQueuesContainer::HandleUpdate(Atomic::StringHash eventType, Atomic::VariantMap& eventData)
+	void TasksQueuesContainer::Update()
 	{
 		for (auto it = queueMap_.begin(); it != queueMap_.end(); ++it)
 		{
 			it->second.Update();
 		}
 	}
-
 }

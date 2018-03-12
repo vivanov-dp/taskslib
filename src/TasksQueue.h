@@ -1,20 +1,19 @@
 #pragma once
 
-#include "Atomic/Core/Assert.h"
-#include "Atomic/Core/Object.h"
-#include "Atomic/Container/List.h"
-
-#include "Task.h"
-
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <map>
 #include <unordered_map>
+#include <vector>
+
+#include "Task.h"
+
+
 
 namespace TasksLib
 {
 	class TaskThread;
-	class TaskScheduleThread;
 	class TasksQueuesContainer;
 
 	using scheduleClock = std::chrono::steady_clock;
@@ -70,12 +69,13 @@ namespace TasksLib
 
 		TasksQueuePerformanceStats<std::int32_t> GetPerformanceStats(bool reset);
 
+		void Update();
+
 	private:
 		void CreateThreads(const unsigned count, const unsigned countNonBlocking, const unsigned scheduling);
 		void RescheduleTask(std::shared_ptr<Task> task);
 
 	private:
-
 		std::atomic<bool> shutDown_;
 		std::atomic<bool> isInitialized_;
 		std::atomic<unsigned int> runningPriority_;
@@ -83,58 +83,39 @@ namespace TasksLib
 		// Mutexes lock order is - (Task->dataMutex), dataMutex, schedulerMutex, tasksMutex, mtTasksMutex
 
 		std::mutex dataMutex_;
-		Atomic::Vector<std::shared_ptr<TaskThread>> threads_;
+		std::vector<std::shared_ptr<TaskThread>> threads_;
 
 		std::mutex schedulerMutex_;
 		std::condition_variable scheduleCondition_;
-		Atomic::Vector<std::shared_ptr<TaskScheduleThread>> schedulingThreads_;
+		std::vector<std::shared_ptr<TaskThread>> schedulingThreads_;
 		scheduleMap scheduledTasks_;
 
 		std::atomic<scheduleTimePoint> scheduleEarliest_;
 
 		std::mutex tasksMutex_;
 		std::condition_variable tasksCondition_;
-		Atomic::List<TaskPtr> tasks_;
+		std::vector<TaskPtr> tasks_;
 
 		std::mutex mtTasksMutex_;
-		Atomic::List<TaskPtr> mtTasks_;
+		std::vector<TaskPtr> mtTasks_;
 
 		TasksQueuePerformanceStats<std::atomic<std::int32_t>> stats_;
-
-	protected:
-		void Update();
-
-		friend class TasksQueuesContainer;
-	};
-
-	// ===== TasksQueueAtomic ========================================================
-	class ATOMIC_API TasksQueueAtomic : public Atomic::Object, public TasksQueue
-	{
-		ATOMIC_OBJECT(TasksQueueAtomic, Object);
-
-	public:
-		TasksQueueAtomic(Atomic::Context* context);
-		virtual ~TasksQueueAtomic();
-
-		void HandleUpdate(Atomic::StringHash eventType, Atomic::VariantMap& eventData);
 	};
 
 	// ===== TasksQueueContainer ========================================================
-	class ATOMIC_API TasksQueuesContainer : public Atomic::Object
+	class TasksQueuesContainer
 	{
-		ATOMIC_OBJECT(TasksQueuesContainer, Object);
-
 	public:
-		TasksQueuesContainer(Atomic::Context* context);
+		TasksQueuesContainer();
 		virtual ~TasksQueuesContainer();
 
 		void Initialize();
 		void ShutDown();
 
-		TasksQueue& GetQueue(const std::string& queueName);
+		TasksQueue* GetQueue(const std::string& queueName);
 		void CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration);
 
-		void HandleUpdate(Atomic::StringHash eventType, Atomic::VariantMap& eventData);
+		void Update();
 
 	private:
 		bool isInitialized_;

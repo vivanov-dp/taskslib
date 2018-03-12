@@ -3,6 +3,7 @@
 #include <mutex>
 #include <memory>
 #include <string>
+#include <chrono>
 
 namespace TasksLib
 {
@@ -132,5 +133,4 @@ namespace TasksLib
 	{
 		rescheduleSuspendTime_ = ms;
 	}
-
 }
