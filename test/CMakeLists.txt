@@ -11,19 +11,25 @@ set(GMOCK_INCLUDES "${GTEST_PREFIX}/src/GTestExternal/googlemock/include")
 ExternalProject_Add(GTestExternal
 	GIT_REPOSITORY https://github.com/google/googletest.git
 	GIT_TAG master
+	GIT_SHALLOW TRUE
+	GIT_PROGRESS TRUE
     PREFIX "${GTEST_PREFIX}"
 
-    # cmake arguments
-    #CMAKE_ARGS -Dgtest_force_shared_crt=ON
+	EXCLUDE_FROM_ALL TRUE
 
-    # Disable install step
+    # cmake arguments (required on msvc)
+    CMAKE_ARGS -Dgtest_force_shared_crt=ON
+
+    # Disable steps
     INSTALL_COMMAND ""
+	TEST_COMMAND ""
 
     # Wrap download, configure and build steps in a script to log output
     LOG_DOWNLOAD ON
     LOG_CONFIGURE ON
     LOG_BUILD ON
     )
+set_target_properties(GTestExternal PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 
 # variables defining the import location properties for the generated gtest* libraries
 if (MSVC)
@@ -96,4 +102,10 @@ add_dependencies(GMock GTestExternal)
 
 
 # Finally add the tests
-include(TestTargets.cmake)
+include_directories (${TasksLib_SOURCE_DIR}/src)
+
+add_executable(TestTaskExec test_task.cpp)
+target_link_libraries(TestTaskExec TasksLib GTestMain)
+target_compile_features(TestTaskExec PUBLIC cxx_std_17)
+
+add_test(NAME TestTask COMMAND TestTaskExec)
