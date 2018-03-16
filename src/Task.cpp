@@ -5,51 +5,40 @@
 #include <string>
 #include <chrono>
 
-namespace TasksLib
-{
-	using BlockingType = bool;
+namespace TasksLib {
 
-	Task::Task(const bool isBlocking, const TaskPriority priority, const bool isMainThread)
-		: isBlocking_(isBlocking)
-		, priority_(priority)
-		, isMainThread_(isMainThread)
+	Task::Task() 
+		: priority_(0)
+		, isBlocking_(false)
+		, isMainThread_(false)
 		, status_(TASK_INIT)
-		, suspendTime_(std::chrono::milliseconds(0))
+		, executable_(nullptr)
+		, suspendTime_(0)
 	{
+		ResetReschedule_();
 	}
-	Task::Task(const TaskExecutable executable, const bool isBlocking, const TaskPriority priority, const bool isMainThread)
-		: Task(isBlocking, priority, isMainThread)
-	{
-		executable_ = executable;
-	}
-	Task::~Task()
-	{
-	}
+	Task::~Task() {}
 
-	const uint32_t Task::GetPriority()
-	{
-		std::lock_guard<std::mutex> lock(dataMutex_);
-		return GetPriority_();
+	const uint32_t Task::GetPriority() const {
+		return priority_;
 	}
-	const bool Task::IsBlocking()
-	{
-		std::lock_guard<std::mutex> lock(dataMutex_);
-		return IsBlocking_();
+	const bool Task::IsBlocking() const {
+		return isBlocking_;
 	}
-	const bool Task::IsMainThread()
-	{
-		std::lock_guard<std::mutex> lock(dataMutex_);
-		return IsMainThread_();
+	const bool Task::IsMainThread() const {
+		return isMainThread_;
 	}
-
-	const TaskStatus Task::GetStatus()
-	{
-		std::lock_guard<std::mutex> lock(dataMutex_);
+	const TaskStatus Task::GetStatus() const {
 		return status_;
 	}
+	TaskExecutable const& Task::GetExecutable() const {
+		return executable_;
+	}
+	const std::chrono::milliseconds Task::GetSuspendTime() const {
+		return suspendTime_;
+	}
 
-	void Task::Execute(TasksQueue* queue, std::shared_ptr<Task> task)
-	{
+	void Task::Execute(TasksQueue* queue, std::shared_ptr<Task> task) {
 		{
 			std::unique_lock<std::mutex> lock(dataMutex_);
 			if (executable_)
@@ -73,47 +62,37 @@ namespace TasksLib
 	{
 		return dataMutex_;
 	}
-	const uint32_t Task::GetPriority_()
-	{
-		return priority_;
-	}
-	const bool Task::IsBlocking_()
-	{
-		return isBlocking_;
-	}
-	const bool Task::IsMainThread_()
-	{
-		return isMainThread_;
-	}
 
-	void Task::ResetReschedule_(std::unique_lock<std::mutex> lock)
-	{
+	void Task::ResetReschedule_() {
 		doReschedule_ = false;
+		reschedulePriority_ = priority_;
 		rescheduleBlocking_ = isBlocking_;
 		rescheduleMainThread_ = false;
-		reschedulePriority_ = priority_;
 		rescheduleExecutable_ = executable_;
 		rescheduleSuspendTime_ = std::chrono::milliseconds(0);
+	}
+	void Task::ResetReschedule_(std::unique_lock<std::mutex> lock) {
+		ResetReschedule_();
 	}
 	// This is called by the queue to copy the reschedule options to the task, locking handled from outside
 	void Task::ApplyReschedule_()
 	{
+		priority_ = reschedulePriority_;
 		isBlocking_ = rescheduleBlocking_;
 		isMainThread_ = rescheduleMainThread_;
-		priority_ = reschedulePriority_;
 		executable_ = rescheduleExecutable_;
 		suspendTime_ = rescheduleSuspendTime_;
 	}
 
-	void Task::RescheduleOption_(const BlockingType& isBlocking)
+	void Task::RescheduleOption_(const TaskBlocking& isBlocking)
 	{
 		rescheduleBlocking_ = isBlocking;
 	}
-	void Task::RescheduleOption_(const BlockingType&& isBlocking)
+	void Task::RescheduleOption_(const TaskBlocking&& isBlocking)
 	{
 		rescheduleBlocking_ = isBlocking;
 	}
-	void Task::RescheduleOption_(const ThreadTarget&& thread)
+	void Task::RescheduleOption_(const TaskThreadTarget&& thread)
 	{
 		rescheduleMainThread_ = (thread == MAIN_THREAD);
 	}

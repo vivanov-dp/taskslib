@@ -5,109 +5,129 @@
 #include <string>
 #include <chrono>
 
-#define TASK_FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+//#define TASK_FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
 
-namespace TasksLib
-{
-	using BlockingType = bool;
-	enum ThreadTarget
-	{
+namespace TasksLib {
+
+	enum TaskThreadTarget {
 		MAIN_THREAD,
 		WORKER_THREAD
 	};
-	enum TaskStatus
-	{
-		TASK_INIT,
+	enum TaskStatus	{
+		TASK_FINISHED = 0,
+
+		TASK_INIT = 1,
 		TASK_SUSPENDED,
 		TASK_IN_QUEUE,
 		TASK_WORKING,
-
-		TASK_FINISHED = -100
 	};
 
 	class TasksQueue;
 	class Task;
 
-	using TaskPtr = std::shared_ptr<Task>;
-	using TaskWeakPtr = std::weak_ptr<Task>;
-	using TaskExecutable = std::function<void(TasksQueue* queue, TaskPtr task)>;
+	using TaskPtr			= std::shared_ptr<Task>;
+	using TaskUniquePtr		= std::unique_ptr<Task>;
+	using TaskWeakPtr		= std::weak_ptr<Task>;
+	using TaskExecutable	= std::function<void(TasksQueue* queue, TaskPtr task)>;
+	
+	using TaskBlocking		= bool;
+	using TaskPriority		= uint32_t;
 
-	using TaskPriority = uint32_t;
-
-	class Task
-	{
+	class Task {
 	public:
-		Task(const bool isBlocking = false, const TaskPriority priority = 0, const bool isMainThread = false);
-		Task(const TaskExecutable executable, const bool isBlocking = false, const TaskPriority priority = 0, const bool isMainThread = false);
+		Task();
+		template <typename... Ts>
+		explicit Task(Ts&& ...Ts);
 		virtual ~Task();
 
-		const uint32_t GetPriority();
-		const bool IsBlocking();
-		const bool IsMainThread();
+		const uint32_t GetPriority() const;
+		const bool IsBlocking() const;
+		const bool IsMainThread() const;
+		const TaskStatus GetStatus() const;
+		TaskExecutable const& GetExecutable() const;
+		const std::chrono::milliseconds GetSuspendTime() const;
 
-		const TaskStatus GetStatus();
+
+
 
 		template <typename... Ts>
 		void Reschedule(Ts&& ... ts);
 
 	protected:
 		std::mutex& GetDataMutex_();
-		const uint32_t GetPriority_();
-		const bool IsBlocking_();
-		const bool IsMainThread_();
 
 		void Execute(TasksQueue* queue, std::shared_ptr<Task> task);
 		void ResetReschedule_(std::unique_lock<std::mutex> lock);
-		void ApplyReschedule_();
 
 		template <typename T>
 		void SetRescheduleOption_(T&& t);
 		template <typename T, typename... Ts>
 		void SetRescheduleOption_(T&& t, Ts&& ... ts);
-		void RescheduleOption_(const BlockingType& isBlocking);
-		void RescheduleOption_(const BlockingType&& isBlocking);
-		void RescheduleOption_(const ThreadTarget&& thread);
+		void RescheduleOption_(const TaskBlocking& isBlocking);
+		void RescheduleOption_(const TaskBlocking&& isBlocking);
+		void RescheduleOption_(const TaskThreadTarget&& thread);
 		void RescheduleOption_(const TaskPriority&& priority);
 		void RescheduleOption_(const TaskExecutable executable);
 		void RescheduleOption_(const std::chrono::milliseconds& ms);
 		void RescheduleOption_(const std::chrono::milliseconds&& ms);
 
 	protected:
-		std::mutex dataMutex_;
-		TaskPriority priority_;
-		bool isBlocking_;
-		bool isMainThread_;
-		TaskStatus status_;
-		TaskExecutable executable_;
-		std::chrono::milliseconds suspendTime_;
+		std::mutex					dataMutex_;
+		TaskPriority				priority_;
+		bool						isBlocking_;
+		bool						isMainThread_;
+		TaskStatus					status_;
+		TaskExecutable				executable_;
+		std::chrono::milliseconds	suspendTime_;
 
-		bool doReschedule_;
-		bool rescheduleBlocking_;
-		bool rescheduleMainThread_;
-		TaskPriority reschedulePriority_;
-		TaskExecutable rescheduleExecutable_;
-		std::chrono::milliseconds rescheduleSuspendTime_;
+		bool						doReschedule_;
+		bool						rescheduleBlocking_;
+		bool						rescheduleMainThread_;
+		TaskPriority				reschedulePriority_;
+		TaskExecutable				rescheduleExecutable_;
+		std::chrono::milliseconds	rescheduleSuspendTime_;
+
+	private:
+		void ApplyReschedule_();
+		void ResetReschedule_();
 
 		friend class TasksQueue;
 	};
+
+
+
+
+	template <typename... Ts>
+	Task::Task(Ts&& ...ts) 
+		: Task()
+	{
+		SetRescheduleOption_(std::forward<Ts>(ts)...);
+		ApplyReschedule_();
+		ResetReschedule_();
+	}
+
+
+
+
+
 
 	template <typename... Ts>
 	void Task::Reschedule(Ts&& ... ts)
 	{
 		std::lock_guard<std::mutex> lock(dataMutex_);
-		SetRescheduleOption_(TASK_FWD(ts)...);
+		SetRescheduleOption_(std::forward<Ts>(ts)...);
 		doReschedule_ = true;
 	}
 	template <typename T>
 	void Task::SetRescheduleOption_(T&& t)
 	{
-		RescheduleOption_(TASK_FWD(t));
+		RescheduleOption_(std::forward<T>(t));
 	}
 	template <typename T, typename... Ts>
 	void Task::SetRescheduleOption_(T&& t, Ts&& ... ts)
 	{
-		SetRescheduleOption_(TASK_FWD(t));
-		SetRescheduleOption_(TASK_FWD(ts)...);
+		SetRescheduleOption_(std::forward<T>(t));
+		SetRescheduleOption_(std::forward<Ts>(ts)...);
 	}
 
 

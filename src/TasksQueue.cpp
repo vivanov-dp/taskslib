@@ -118,7 +118,7 @@ namespace TasksLib
 		}
 		else
 		{
-			if (!task->IsMainThread_())
+			if (!task->IsMainThread())
 			{
 				{
 					std::lock_guard<std::mutex> lockTask(tasksMutex_);
@@ -135,9 +135,9 @@ namespace TasksLib
 
 			task->status_ = TaskStatus::TASK_IN_QUEUE;
 
-			if (task->GetPriority_() > runningPriority_)
+			if (task->GetPriority() > runningPriority_)
 			{
-				runningPriority_ = task->GetPriority_();
+				runningPriority_ = task->GetPriority();
 			}
 		}
 
@@ -167,8 +167,8 @@ namespace TasksLib
 				if (task)
 				{
 					std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
-					if ((task->IsBlocking_() && ignoreBlocking)
-						|| (task->GetPriority_() < runningPriority_)
+					if ((task->IsBlocking() && ignoreBlocking)
+						|| (task->GetPriority() < runningPriority_)
 					   )
 					{
 						task = nullptr;
@@ -263,7 +263,7 @@ namespace TasksLib
 					{
 						std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
 
-						if (task->GetPriority_() >= runningPriority_)
+						if (task->GetPriority() >= runningPriority_)
 						{
 							runTasks.push_back(task);
 						}
