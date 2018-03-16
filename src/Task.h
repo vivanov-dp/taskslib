@@ -11,6 +11,17 @@
 
 namespace TasksLib {
 
+	struct TaskOptions {
+	public:
+		TaskOptions();
+
+		TaskPriority				priority_;
+		bool						isBlocking_;
+		bool						isMainThread_;
+		TaskExecutable				executable_;
+		std::chrono::milliseconds	suspendTime_;
+	};
+
 	class Task {
 	public:
 		Task();
@@ -51,17 +62,18 @@ namespace TasksLib {
 
 	protected:
 		std::mutex					dataMutex_;
+		
+		TaskStatus					status_;
 		TaskPriority				priority_;
 		bool						isBlocking_;
 		bool						isMainThread_;
-		TaskStatus					status_;
 		TaskExecutable				executable_;
 		std::chrono::milliseconds	suspendTime_;
 
 		bool						doReschedule_;
+		TaskPriority				reschedulePriority_;
 		bool						rescheduleBlocking_;
 		bool						rescheduleMainThread_;
-		TaskPriority				reschedulePriority_;
 		TaskExecutable				rescheduleExecutable_;
 		std::chrono::milliseconds	rescheduleSuspendTime_;
 
@@ -81,7 +93,6 @@ namespace TasksLib {
 	{
 		SetRescheduleOption_(std::forward<Ts>(ts)...);
 		ApplyReschedule_();
-		ResetReschedule_();
 	}
 
 
