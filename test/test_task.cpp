@@ -1,10 +1,10 @@
-#include "Task.h"
-#include "gtest/gtest.h"
-
 #include <list>
 #include <string>
 #include <memory>
 #include <iostream>
+
+#include "Task.h"
+#include "gtest/gtest.h"
 
 namespace TasksLib {
 
