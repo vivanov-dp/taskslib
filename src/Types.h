@@ -15,6 +15,9 @@ namespace TasksLib {
 		TASK_WORKING,
 	};
 
+	using TaskBlocking = bool;
+	using TaskPriority = uint32_t;
+
 	class TasksQueue;
 	class Task;
 
@@ -22,8 +25,5 @@ namespace TasksLib {
 	using TaskUniquePtr		= std::unique_ptr<Task>;
 	using TaskWeakPtr		= std::weak_ptr<Task>;
 	using TaskExecutable	= std::function<void(TasksQueue* queue, TaskPtr task)>;
-
-	using TaskBlocking = bool;
-	using TaskPriority = uint32_t;
 
 }
