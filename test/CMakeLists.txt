@@ -104,7 +104,7 @@ add_dependencies(GMock GTestExternal)
 # Finally add the tests
 include_directories (${TasksLib_SOURCE_DIR}/src)
 
-add_executable(TestTask test_task.cpp)
+add_executable(TestTask TestTask.cpp)
 target_link_libraries(TestTask TasksLib GTestMain)
 target_compile_features(TestTask PUBLIC cxx_std_17)
 
