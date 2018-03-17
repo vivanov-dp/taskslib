@@ -10,6 +10,35 @@ namespace TasksLib {
 		, suspendTime(0)
 	{
 	}
+	TaskOptions::TaskOptions(const TaskOptions& other) {
+		operator=(other);
+	}
+	TaskOptions::TaskOptions(TaskOptions&& other) {
+		operator=(std::move(other));
+	}
+
+	TaskOptions& TaskOptions::operator=(const TaskOptions& other) {
+		// Don't check for equality because the check would take as much time as the assignment
+
+		priority		= other.priority;
+		isBlocking		= other.isBlocking;
+		isMainThread	= other.isMainThread;
+		executable		= other.executable;
+		suspendTime		= other.suspendTime;
+
+		return *this;
+	}
+	TaskOptions& TaskOptions::operator=(TaskOptions&& other) {
+		// Don't check for equality because the check would take as much time as the assignment
+
+		priority		= other.priority;
+		isBlocking		= other.isBlocking;
+		isMainThread	= other.isMainThread;
+		executable		= std::move(other.executable);
+		suspendTime		= other.suspendTime;
+
+		return *this;
+	}
 
 	const bool TaskOptions::operator==(const TaskOptions& other) const {
 		return (
@@ -25,6 +54,12 @@ namespace TasksLib {
 		return !(operator==(other));
 	}
 
+	void TaskOptions::SetOption_(const TaskOptions& other) {
+		operator=(other);
+	}
+	void TaskOptions::SetOption_(const TaskOptions&& other) {
+		operator=(std::move(other));
+	}
 	void TaskOptions::SetOption_(const TaskPriority& _priority) {
 		priority = _priority;
 	}

@@ -19,6 +19,19 @@ namespace TasksLib {
 
 		std::random_device randDev;
 		std::default_random_engine randEng;
+
+		TaskOptions GenerateRandomOptions() {
+			std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
+			std::uniform_int_distribution<unsigned int> distBool(0, 1);
+			std::uniform_int_distribution<unsigned int> distThreadTarget(0, 1);
+
+			TaskPriority priority{ distInt(randEng) };
+			bool isBlocking{ (bool)distBool(randEng) };
+			TaskThreadTarget target{ static_cast<TaskThreadTarget>(distThreadTarget(randEng)) };
+			std::chrono::milliseconds ms{ distInt(randEng) };
+
+			return TaskOptions{ priority, isBlocking, target, ms };
+		}
 	};
 
 	TEST_F(TaskOptionsTest, CreatesDefault) {
@@ -28,6 +41,29 @@ namespace TasksLib {
 		EXPECT_EQ(opt.executable, nullptr);
 		EXPECT_EQ(opt.suspendTime, std::chrono::milliseconds(0));
 	}
+	TEST_F(TaskOptionsTest, CreatesWithCopy) {
+		TaskOptions otherOpt = GenerateRandomOptions();
+
+		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
+			otherOpt.isBlocking = !otherOpt.isBlocking;
+		}
+		ASSERT_NE(opt, otherOpt);
+
+		TaskOptions opt2(otherOpt);
+		EXPECT_EQ(opt2, otherOpt);
+	}
+	TEST_F(TaskOptionsTest, CreatesWithMove) {
+		TaskOptions otherOpt = GenerateRandomOptions();
+
+		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
+			otherOpt.isBlocking = !otherOpt.isBlocking;
+		}
+		ASSERT_NE(opt, otherOpt);
+
+		TaskOptions opt2(std::move(otherOpt));
+		EXPECT_EQ(opt2, otherOpt);
+	}
+
 	TEST_F(TaskOptionsTest, SetsPriority) {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
 		auto seed = randDev();
@@ -60,17 +96,23 @@ namespace TasksLib {
 		EXPECT_TRUE(opt.isMainThread);
 	}
 	TEST_F(TaskOptionsTest, SetsExecutable) {
-		int zen = 15;
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { zen = 17; };
+		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX-20);
+		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
+
+		unsigned int zen = 0;
+		unsigned int zen_init = distInt(randEng);
+		unsigned int gen = 0;
+		unsigned int gen2 = 0;
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
 
 		opt.SetOptions(lambda);
 		EXPECT_NE(opt.executable, nullptr);
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, 17);
+		EXPECT_EQ(zen, zen_init + gen);
 
-		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { zen = 27; });
+		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { gen2 = distInt2(randEng); zen = zen_init + gen2; });
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, 27);
+		EXPECT_EQ(zen, zen_init + gen2);
 	}
 	TEST_F(TaskOptionsTest, SetsSuspendTime) {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
@@ -101,21 +143,55 @@ namespace TasksLib {
 
 		auto opt = new TaskOptions();
 	}
-	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
-		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
-		std::uniform_int_distribution<unsigned int> distBool(0, 1);
-		std::uniform_int_distribution<unsigned int> distThreadTarget(0, 1);
+	
+	TEST_F(TaskOptionsTest, AssignsFromOtherWithCopy) {
+		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX - 20);
+		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
 
-		TaskPriority priority{ distInt(randEng) };
-		bool isBlocking{ (bool)distBool(randEng) };
-		TaskThreadTarget target{ static_cast<TaskThreadTarget>(distThreadTarget(randEng)) };
-		std::chrono::milliseconds ms{ distInt(randEng) };
-
-		TaskOptions otherOpt{ priority, isBlocking, target, ms };
+		unsigned int zen = 0;
+		unsigned int zen_init = distInt(randEng);
+		unsigned int gen = 0;
+		unsigned int gen2 = 0;
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
+		TaskOptions otherOpt = GenerateRandomOptions();
 		
-		opt.SetOptions(!isBlocking);		// just in case we hit the jackpot and the random generates the default values
+		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
+		otherOpt.SetOptions(lambda);
+		ASSERT_NE(opt, otherOpt);
+
+		opt = otherOpt;
+		EXPECT_EQ(opt, otherOpt);
+		opt.executable(nullptr, nullptr);
+		EXPECT_EQ(zen, zen_init + gen);
+	}
+	TEST_F(TaskOptionsTest, AssignsFromOtherWithMove) {
+		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX - 20);
+		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
+
+		unsigned int zen = 0;
+		unsigned int zen_init = distInt(randEng);
+		unsigned int gen = 0;
+		unsigned int gen2 = 0;
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
+		TaskOptions otherOpt = GenerateRandomOptions();
+
+		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
+		otherOpt.SetOptions(lambda);
+		ASSERT_NE(opt, otherOpt);
+
+		opt = std::move(otherOpt);
+		otherOpt.executable = opt.executable;		// Hack that because after std::move() otherOpt.executable could be left with its target empty and then opt != otherOpt
+		EXPECT_EQ(opt, otherOpt);
+		opt.executable(nullptr, nullptr);
+		EXPECT_EQ(zen, zen_init + gen);
+	}
+
+	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
+		TaskOptions otherOpt = GenerateRandomOptions();
+		
+		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
 		EXPECT_NE(opt, otherOpt);
-		opt.SetOptions(priority, isBlocking, target, ms);
+		opt.SetOptions(otherOpt.priority, otherOpt.isBlocking, static_cast<TaskThreadTarget>((int)(!otherOpt.isMainThread)), otherOpt.suspendTime);
 		EXPECT_EQ(opt, otherOpt);
 	}
 

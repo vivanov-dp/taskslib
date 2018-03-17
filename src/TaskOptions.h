@@ -10,6 +10,8 @@ namespace TasksLib {
 	public:
 		/* Creates TaskOptions with the default set of values */
 		TaskOptions();
+		TaskOptions(const TaskOptions& other);
+		TaskOptions(TaskOptions&& other);
 		/*
 		   Creates TaskOptions with the specified set of values
 		   Usage: TaskOptions( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
@@ -29,6 +31,9 @@ namespace TasksLib {
 		template <typename T, typename... Ts>
 		void SetOptions(T&& opt, Ts&& ... opts);
 
+		TaskOptions& operator=(const TaskOptions& other);
+		TaskOptions& operator=(TaskOptions&& other);
+
 		/*
 		   Equality operator. 
 		   Note that std::function is uncomparable in C++ so executable is only half-matched (it will return false if 
@@ -43,6 +48,8 @@ namespace TasksLib {
 		const bool operator!=(const TaskOptions& other) const;
 
 	private:
+		void SetOption_(const TaskOptions& other);					// Copy and Move constructing sometimes matches the templated constructor and boils down to here
+		void SetOption_(const TaskOptions&& other);					// Sometimes it doesn't and it is unclear when and why, so both implementations are provided
 		void SetOption_(const TaskPriority& priority);
 		void SetOption_(const TaskBlocking& isBlocking);
 		void SetOption_(const TaskThreadTarget& threadTarget);
