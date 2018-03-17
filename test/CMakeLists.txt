@@ -108,4 +108,9 @@ add_executable(TestTaskExec test_task.cpp)
 target_link_libraries(TestTaskExec TasksLib GTestMain)
 target_compile_features(TestTaskExec PUBLIC cxx_std_17)
 
+add_executable(TestTaskOptionsExec TestTaskOptions.cpp)
+target_link_libraries(TestTaskOptionsExec TasksLib GTestMain)
+target_compile_features(TestTaskOptionsExec PUBLIC cxx_std_17)
+
 add_test(NAME TestTask COMMAND TestTaskExec)
+add_test(NAME TestTaskOptions COMMAND TestTaskOptionsExec)
