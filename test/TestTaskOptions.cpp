@@ -98,6 +98,25 @@ namespace TasksLib {
 		EXPECT_EQ(opt.priority, TaskPriority{ 42 });
 		EXPECT_TRUE(opt.isMainThread);
 		EXPECT_EQ(opt.suspendTime, std::chrono::milliseconds(15));
+
+		auto opt = new TaskOptions();
+	}
+	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
+		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
+		std::uniform_int_distribution<unsigned int> distBool(0, 1);
+		std::uniform_int_distribution<unsigned int> distThreadTarget(0, 1);
+
+		TaskPriority priority{ distInt(randEng) };
+		bool isBlocking{ (bool)distBool(randEng) };
+		TaskThreadTarget target{ static_cast<TaskThreadTarget>(distThreadTarget(randEng)) };
+		std::chrono::milliseconds ms{ distInt(randEng) };
+
+		TaskOptions otherOpt{ priority, isBlocking, target, ms };
+		
+		opt.SetOptions(!isBlocking);		// just in case we hit the jackpot and the random generates the default values
+		EXPECT_NE(opt, otherOpt);
+		opt.SetOptions(priority, isBlocking, target, ms);
+		EXPECT_EQ(opt, otherOpt);
 	}
 
 }
