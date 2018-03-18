@@ -20,6 +20,13 @@ namespace TasksLib {
 
 		std::random_device randDev;
 		std::default_random_engine randEng;
+
+		void TestLambda(TaskOptions& optTested, ExecutableTester& execTest) {
+			ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
+			ASSERT_NE(optTested.executable, nullptr);
+			optTested.executable(nullptr, nullptr);
+			EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+		}
 	};
 
 	TEST_F(TaskOptionsTest, CreatesDefault) {
@@ -31,25 +38,34 @@ namespace TasksLib {
 	}
 	TEST_F(TaskOptionsTest, CreatesWithCopy) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
+		otherOpt.SetOptions(lambda);
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
 			otherOpt.isBlocking = !otherOpt.isBlocking;
 		}
-		ASSERT_NE(opt, otherOpt);
+		ASSERT_NE(opt, otherOpt);					// generated options have to differ from the default
 
 		TaskOptions opt2(otherOpt);
 		EXPECT_EQ(opt2, otherOpt);
+		TestLambda(opt2, execTest);
 	}
 	TEST_F(TaskOptionsTest, CreatesWithMove) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
+		otherOpt.SetOptions(lambda);
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
 			otherOpt.isBlocking = !otherOpt.isBlocking;
 		}
-		ASSERT_NE(opt, otherOpt);
+		ASSERT_NE(opt, otherOpt);					// generated options have to differ from the default
 
 		TaskOptions opt2(std::move(otherOpt));
+		otherOpt.executable = opt2.executable;		// Hack that because after std::move() otherOpt.executable could be left with its target empty and then opt != otherOpt
 		EXPECT_EQ(opt2, otherOpt);
+		TestLambda(opt2, execTest);
 	}
 
 	TEST_F(TaskOptionsTest, SetsPriority) {
@@ -84,23 +100,20 @@ namespace TasksLib {
 		EXPECT_TRUE(opt.isMainThread);
 	}
 	TEST_F(TaskOptionsTest, SetsExecutable) {
-		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX-20);
-		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
-		unsigned int zen = 0;
-		unsigned int zen_init = distInt(randEng);
-		unsigned int gen = 0;
-		unsigned int gen2 = 0;
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
-
+		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
 		opt.SetOptions(lambda);
 		EXPECT_NE(opt.executable, nullptr);
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, zen_init + gen);
+		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
 
-		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { gen2 = distInt2(randEng); zen = zen_init + gen2; });
+		execTest.ResetTest();
+		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
+		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); });
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, zen_init + gen2);
+		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
 	}
 	TEST_F(TaskOptionsTest, SetsSuspendTime) {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
@@ -133,14 +146,8 @@ namespace TasksLib {
 	}
 	
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithCopy) {
-		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX - 20);
-		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
-
-		unsigned int zen = 0;
-		unsigned int zen_init = distInt(randEng);
-		unsigned int gen = 0;
-		unsigned int gen2 = 0;
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
@@ -150,17 +157,11 @@ namespace TasksLib {
 		opt = otherOpt;
 		EXPECT_EQ(opt, otherOpt);
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, zen_init + gen);
+		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
 	}
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithMove) {
-		std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX - 20);
-		std::uniform_int_distribution<unsigned int> distInt2(1, 20);
-
-		unsigned int zen = 0;
-		unsigned int zen_init = distInt(randEng);
-		unsigned int gen = 0;
-		unsigned int gen2 = 0;
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
@@ -171,7 +172,7 @@ namespace TasksLib {
 		otherOpt.executable = opt.executable;		// Hack that because after std::move() otherOpt.executable could be left with its target empty and then opt != otherOpt
 		EXPECT_EQ(opt, otherOpt);
 		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(zen, zen_init + gen);
+		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
 	}
 
 	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
@@ -179,7 +180,7 @@ namespace TasksLib {
 		
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
 		EXPECT_NE(opt, otherOpt);
-		opt.SetOptions(otherOpt.priority, otherOpt.isBlocking, static_cast<TaskThreadTarget>((int)(!otherOpt.isMainThread)), otherOpt.suspendTime);
+		opt = otherOpt;
 		EXPECT_EQ(opt, otherOpt);
 	}
 
