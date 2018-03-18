@@ -106,14 +106,12 @@ namespace TasksLib {
 		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
 		opt.SetOptions(lambda);
 		EXPECT_NE(opt.executable, nullptr);
-		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+		TestLambda(opt, execTest);
 
 		execTest.ResetTest();
 		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
 		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); });
-		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+		TestLambda(opt, execTest);
 	}
 	TEST_F(TaskOptionsTest, SetsSuspendTime) {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
@@ -156,8 +154,7 @@ namespace TasksLib {
 
 		opt = otherOpt;
 		EXPECT_EQ(opt, otherOpt);
-		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+		TestLambda(opt, execTest);
 	}
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithMove) {
 		ExecutableTester execTest(randEng);
@@ -171,8 +168,7 @@ namespace TasksLib {
 		opt = std::move(otherOpt);
 		otherOpt.executable = opt.executable;		// Hack that because after std::move() otherOpt.executable could be left with its target empty and then opt != otherOpt
 		EXPECT_EQ(opt, otherOpt);
-		opt.executable(nullptr, nullptr);
-		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+		TestLambda(opt, execTest);
 	}
 
 	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
