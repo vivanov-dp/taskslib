@@ -104,11 +104,11 @@ namespace TasksLib
 			return false;
 		}
 
-		if (task->suspendTime_ > std::chrono::milliseconds(0))
+		if (task->options_.suspendTime > std::chrono::milliseconds(0))
 		{
 			{
 				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
-				scheduledTasks_.insert(schedulePair(scheduleClock::now() + task->suspendTime_, task));
+				scheduledTasks_.insert(schedulePair(scheduleClock::now() + task->options_.suspendTime, task));
 				++stats_.suspended_;
 				++stats_.waiting_;
 			}
@@ -118,7 +118,7 @@ namespace TasksLib
 		}
 		else
 		{
-			if (!task->IsMainThread())
+			if (!task->GetOptions().isMainThread)
 			{
 				{
 					std::lock_guard<std::mutex> lockTask(tasksMutex_);
@@ -135,9 +135,9 @@ namespace TasksLib
 
 			task->status_ = TaskStatus::TASK_IN_QUEUE;
 
-			if (task->GetPriority() > runningPriority_)
+			if (task->GetOptions().priority > runningPriority_)
 			{
-				runningPriority_ = task->GetPriority();
+				runningPriority_ = task->GetOptions().priority;
 			}
 		}
 
@@ -167,8 +167,8 @@ namespace TasksLib
 				if (task)
 				{
 					std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
-					if ((task->IsBlocking() && ignoreBlocking)
-						|| (task->GetPriority() < runningPriority_)
+					if ((task->GetOptions().isBlocking && ignoreBlocking)
+						|| (task->GetOptions().priority < runningPriority_)
 					   )
 					{
 						task = nullptr;
@@ -212,7 +212,7 @@ namespace TasksLib
 				{
 					auto task = it->second;
 					std::unique_lock<std::mutex> lockTask(task->GetDataMutex_());
-					task->suspendTime_ = std::chrono::milliseconds(0);
+					task->options_.suspendTime = std::chrono::milliseconds(0);
 					runTasks.push_back(task);
 					it = scheduledTasks_.erase(it);
 				}
@@ -263,7 +263,7 @@ namespace TasksLib
 					{
 						std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
 
-						if (task->GetPriority() >= runningPriority_)
+						if (task->GetOptions().priority >= runningPriority_)
 						{
 							runTasks.push_back(task);
 						}
@@ -316,7 +316,7 @@ namespace TasksLib
 		}
 		else
 		{
-			if (task->priority_ > 0)
+			if (task->options_.priority > 0)
 			{
 				runningPriority_ = 0;
 			}

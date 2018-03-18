@@ -4,111 +4,69 @@
 #include <string>
 #include <chrono>
 
-//#define TASK_FWD(...) ::std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
-
 #include "Types.h"
+#include "TaskOptions.h"
 
 namespace TasksLib {
 
 	class Task {
 	public:
 		Task();
+		/*
+		   Creates Task with the specified set of options
+		   Usage: Task( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
+		*/
 		template <typename... Ts>
 		explicit Task(Ts&& ...Ts);
 		virtual ~Task();
 
-		const uint32_t GetPriority() const;
-		const bool IsBlocking() const;
-		const bool IsMainThread() const;
 		const TaskStatus GetStatus() const;
-		TaskExecutable const& GetExecutable() const;
-		const std::chrono::milliseconds GetSuspendTime() const;
-
-
-
+		TaskOptions const& GetOptions() const;
+		TaskOptions const& GetRescheduleOptions() const;
+		const bool WillReschedule() const;
 
 		template <typename... Ts>
-		void Reschedule(Ts&& ... ts);
+		void Reschedule(Ts&& ...ts);
 
 	protected:
 		std::mutex& GetDataMutex_();
-
-		void Execute(TasksQueue* queue, std::shared_ptr<Task> task);
+		void ApplyReschedule_(std::unique_lock<std::mutex> lock);
 		void ResetReschedule_(std::unique_lock<std::mutex> lock);
+		void Execute(TasksQueue* queue, TaskPtr task);
 
-		template <typename T>
-		void SetRescheduleOption_(T&& t);
-		template <typename T, typename... Ts>
-		void SetRescheduleOption_(T&& t, Ts&& ... ts);
-		void RescheduleOption_(const TaskBlocking& isBlocking);
-		void RescheduleOption_(const TaskBlocking&& isBlocking);
-		void RescheduleOption_(const TaskThreadTarget&& thread);
-		void RescheduleOption_(const TaskPriority&& priority);
-		void RescheduleOption_(const TaskExecutable executable);
-		void RescheduleOption_(const std::chrono::milliseconds& ms);
-		void RescheduleOption_(const std::chrono::milliseconds&& ms);
+	private:
+		std::mutex	dataMutex_;
 
-	protected:
-		std::mutex					dataMutex_;
-		
-		TaskStatus					status_;
-		TaskPriority				priority_;
-		bool						isBlocking_;
-		bool						isMainThread_;
-		TaskExecutable				executable_;
-		std::chrono::milliseconds	suspendTime_;
-
-		bool						doReschedule_;
-		TaskPriority				reschedulePriority_;
-		bool						rescheduleBlocking_;
-		bool						rescheduleMainThread_;
-		TaskExecutable				rescheduleExecutable_;
-		std::chrono::milliseconds	rescheduleSuspendTime_;
+		TaskStatus	status_;
+		TaskOptions	options_;
+		TaskOptions	rescheduleOptions_;
+		bool		doReschedule_;
 
 	private:
 		void ApplyReschedule_();
 		void ResetReschedule_();
 
 		friend class TasksQueue;
+		friend class TaskTest;
 	};
-
-
-
 
 	template <typename... Ts>
 	Task::Task(Ts&& ...ts) 
 		: Task()
 	{
-		SetRescheduleOption_(std::forward<Ts>(ts)...);
-		ApplyReschedule_();
+		options_.SetOptions(std::forward<Ts>(ts)...);
 	}
-
-
-
-
-
-
 	template <typename... Ts>
-	void Task::Reschedule(Ts&& ... ts)
-	{
+	void Task::Reschedule(Ts&& ... ts) {
 		std::lock_guard<std::mutex> lock(dataMutex_);
-		SetRescheduleOption_(std::forward<Ts>(ts)...);
+		rescheduleOptions_.SetOptions(std::forward<Ts>(ts)...);
 		doReschedule_ = true;
 	}
-	template <typename T>
-	void Task::SetRescheduleOption_(T&& t)
-	{
-		RescheduleOption_(std::forward<T>(t));
-	}
-	template <typename T, typename... Ts>
-	void Task::SetRescheduleOption_(T&& t, Ts&& ... ts)
-	{
-		SetRescheduleOption_(std::forward<T>(t));
-		SetRescheduleOption_(std::forward<Ts>(ts)...);
-	}
+
 
 
 	// ====== TaskWithData ==============================================================
+
 	template<class T>
 	std::shared_ptr<T> reinterpret_task_cast(TaskPtr task)
 	{
