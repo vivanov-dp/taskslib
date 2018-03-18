@@ -4,6 +4,7 @@
 #include <tuple>
 #include <random>
 
+#include "TestTools.h"
 #include "TaskOptions.h"
 
 namespace TasksLib {
@@ -19,19 +20,6 @@ namespace TasksLib {
 
 		std::random_device randDev;
 		std::default_random_engine randEng;
-
-		TaskOptions GenerateRandomOptions() {
-			std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
-			std::uniform_int_distribution<unsigned int> distBool(0, 1);
-			std::uniform_int_distribution<unsigned int> distThreadTarget(0, 1);
-
-			TaskPriority priority{ distInt(randEng) };
-			bool isBlocking{ (bool)distBool(randEng) };
-			TaskThreadTarget target{ static_cast<TaskThreadTarget>(distThreadTarget(randEng)) };
-			std::chrono::milliseconds ms{ distInt(randEng) };
-
-			return TaskOptions{ priority, isBlocking, target, ms };
-		}
 	};
 
 	TEST_F(TaskOptionsTest, CreatesDefault) {
@@ -42,7 +30,7 @@ namespace TasksLib {
 		EXPECT_EQ(opt.suspendTime, std::chrono::milliseconds(0));
 	}
 	TEST_F(TaskOptionsTest, CreatesWithCopy) {
-		TaskOptions otherOpt = GenerateRandomOptions();
+		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
 			otherOpt.isBlocking = !otherOpt.isBlocking;
@@ -53,7 +41,7 @@ namespace TasksLib {
 		EXPECT_EQ(opt2, otherOpt);
 	}
 	TEST_F(TaskOptionsTest, CreatesWithMove) {
-		TaskOptions otherOpt = GenerateRandomOptions();
+		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
 			otherOpt.isBlocking = !otherOpt.isBlocking;
@@ -153,7 +141,7 @@ namespace TasksLib {
 		unsigned int gen = 0;
 		unsigned int gen2 = 0;
 		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
-		TaskOptions otherOpt = GenerateRandomOptions();
+		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
 		otherOpt.SetOptions(lambda);
@@ -173,7 +161,7 @@ namespace TasksLib {
 		unsigned int gen = 0;
 		unsigned int gen2 = 0;
 		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { gen = distInt2(randEng); zen = zen_init + gen; };
-		TaskOptions otherOpt = GenerateRandomOptions();
+		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
 		otherOpt.SetOptions(lambda);
@@ -187,7 +175,7 @@ namespace TasksLib {
 	}
 
 	TEST_F(TaskOptionsTest, ComparesToTaskOptions) {
-		TaskOptions otherOpt = GenerateRandomOptions();
+		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
 		EXPECT_NE(opt, otherOpt);
