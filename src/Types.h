@@ -12,10 +12,10 @@ namespace TasksLib {
 	enum TaskStatus {
 		TASK_FINISHED = 0,
 
-		TASK_INIT = 1,
-		TASK_SUSPENDED,
-		TASK_IN_QUEUE,
-		TASK_WORKING,
+		TASK_INIT = 1,			// Freshly created, not added to queue
+		TASK_SUSPENDED,			// Put on hold, will reschedule after a specified delay
+		TASK_IN_QUEUE,			// Waiting in a queue
+		TASK_WORKING,			// Executing
 	};
 
 	using TaskBlocking = bool;
