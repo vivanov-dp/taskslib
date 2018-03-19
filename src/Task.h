@@ -29,14 +29,15 @@ namespace TasksLib {
 		void Reschedule(Ts&& ...ts);
 
 	protected:
+		std::mutex	dataMutex_;
+
+	protected:
 		std::mutex& GetDataMutex_();
 		void ApplyReschedule_(std::unique_lock<std::mutex> lock);
 		void ResetReschedule_(std::unique_lock<std::mutex> lock);
 		void Execute(TasksQueue* queue, TaskPtr task);
 
 	private:
-		std::mutex	dataMutex_;
-
 		TaskStatus	status_;
 		TaskOptions	options_;
 		TaskOptions	rescheduleOptions_;
@@ -67,18 +68,9 @@ namespace TasksLib {
 
 	// ====== TaskWithData ==============================================================
 
-	template<class T>
-	std::shared_ptr<T> reinterpret_task_cast(TaskPtr task)
-	{
-		return std::shared_ptr<T>(task, reinterpret_cast<T*>(task.get()));
-	}
-
 	template <class T>
-	class TaskWithData : public Task
-	{
+	class TaskWithData : public Task {
 	public:
-		TaskWithData(const bool isBlocking = false, const TaskPriority priority = 0, const bool isMainThread = false);
-		TaskWithData(const TaskExecutable executable, const bool isBlocking = false, const TaskPriority priority = 0, const bool isMainThread = false);
 		virtual ~TaskWithData();
 
 		std::shared_ptr<T> GetData();
@@ -89,30 +81,16 @@ namespace TasksLib {
 	};
 
 	template <class T>
-	TaskWithData<T>::TaskWithData(const bool isBlocking, const TaskPriority priority, const bool isMainThread)
-		: Task(isBlocking, priority, isMainThread)
-	{
-	}
-	template <class T>
-	TaskWithData<T>::TaskWithData(const TaskExecutable executable, const bool isBlocking, const TaskPriority priority, const bool isMainThread)
-		: Task(executable, isBlocking, priority, isMainThread)
-	{
-	}
-	template <class T>
-	TaskWithData<T>::~TaskWithData()
-	{
-	}
+	TaskWithData<T>::~TaskWithData() {}
 
 	template <class T>
-	std::shared_ptr<T> TaskWithData<T>::GetData()
-	{
+	std::shared_ptr<T> TaskWithData<T>::GetData() {
 		std::lock_guard<std::mutex> lock(dataMutex_);
 
 		return data_;
 	}
 	template <class T>
-	void TaskWithData<T>::SetData(std::shared_ptr<T> data)
-	{
+	void TaskWithData<T>::SetData(std::shared_ptr<T> data) {
 		std::lock_guard<std::mutex> lock(dataMutex_);
 
 		data_ = data;

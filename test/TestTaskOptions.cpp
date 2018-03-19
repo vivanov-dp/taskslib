@@ -133,14 +133,20 @@ namespace TasksLib {
 		EXPECT_EQ(opt.suspendTime, ms);
 	}
 	TEST_F(TaskOptionsTest, SetsMultipleOptions) {
-		// I'm annoyingly unable to generate a tuple of random length and element types to pass to SetOptions(), so this test is not good
-		opt.SetOptions(TaskPriority{ 42 }, TaskThreadTarget{ MAIN_THREAD }, std::chrono::milliseconds(15));
+		// I'm annoyingly unable to return and hold in a variable a (tuple) of random length and element types to pass to SetOptions(),
+		// so this test is not covering the cases when SetOptions() is called with number of arguments between 2 and max-1.
+		// Due to the usage of variadic templates however this test should still be a guarantee that it would work in such a case.
 
-		EXPECT_EQ(opt.priority, TaskPriority{ 42 });
-		EXPECT_TRUE(opt.isMainThread);
-		EXPECT_EQ(opt.suspendTime, std::chrono::milliseconds(15));
+		TaskOptions other;
+		ExecutableTester execTest(randEng);
+		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		other = GenerateRandomOptions(randEng);
+		other.SetOptions(lambda);
 
-		auto opt = new TaskOptions();
+		opt.SetOptions(other.priority, other.isBlocking, static_cast<TaskThreadTarget>((int)(!other.isMainThread)), other.executable, other.suspendTime);
+		ASSERT_EQ(opt, other);
+		opt.executable(nullptr, nullptr);
+		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
 	}
 	
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithCopy) {

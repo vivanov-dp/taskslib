@@ -30,7 +30,7 @@ namespace TasksLib {
 		}
 	};
 
-	TEST_F(TaskTest, Creates) {
+	TEST_F(TaskTest, CreatesDefault) {
 		EXPECT_EQ(task.GetStatus(), TaskStatus::TASK_INIT);
 	}
 	TEST_F(TaskTest, CreatesWithOptions) {
@@ -40,6 +40,7 @@ namespace TasksLib {
 		options.SetOptions(lambda);
 		Task newTask{ options };
 
+		EXPECT_EQ(task.GetStatus(), TaskStatus::TASK_INIT);
 		EXPECT_EQ(newTask.GetOptions(), options);
 
 		TaskExecutable const& exec = newTask.GetOptions().executable;
@@ -94,5 +95,33 @@ namespace TasksLib {
 		TaskExecutable const& exec = task.GetOptions().executable;
 		exec(nullptr, nullptr);
 		EXPECT_EQ(execTest.test, execTest.testBase + execTest.generated);
+	}
+
+
+	// ====== TaskWithData ==============================================================
+
+	class TaskWithDataTest : public ::testing::Test {
+	public:
+		TaskWithDataTest::TaskWithDataTest()
+			: task()
+		{
+			randEng.seed(randDev());
+		}
+		TaskWithDataTest::~TaskWithDataTest() {}
+
+		TaskWithData<int> task;
+
+		std::random_device randDev;
+		std::default_random_engine randEng;
+
+	};
+
+	TEST_F(TaskWithDataTest, SetsAndGetsData) {
+		std::uniform_int_distribution<int> random(INT_MIN, INT_MAX);
+
+		ASSERT_EQ(task.GetData(), nullptr);
+		int i = random(randEng);
+		task.SetData(std::make_shared<int>(i));
+		EXPECT_EQ(*(task.GetData()), i);
 	}
 }
