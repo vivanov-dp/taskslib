@@ -19,11 +19,11 @@ namespace TasksLib {
 		template <typename... Ts>
 		explicit TaskOptions(Ts&& ...opts);
 
-		TaskPriority				priority;
-		bool						isBlocking;
-		bool						isMainThread;
-		TaskExecutable				executable;
-		std::chrono::milliseconds	suspendTime;
+		TaskPriority		priority;
+		bool				isBlocking;
+		bool				isMainThread;
+		TaskExecutable		executable;
+		TaskMilliseconds	suspendTime;
 
 	public:
 		template <typename T>
@@ -55,7 +55,7 @@ namespace TasksLib {
 		void SetOption_(const TaskThreadTarget& threadTarget);
 		void SetOption_(const TaskExecutable& executable);
 		void SetOption_(TaskExecutable&& executable);
-		void SetOption_(const std::chrono::milliseconds& ms);
+		void SetOption_(const TaskMilliseconds& ms);
 	};
 
 	template <typename... Ts>

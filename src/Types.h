@@ -2,13 +2,10 @@
 
 #include <memory>
 #include <functional>
+#include <chrono>
 
 namespace TasksLib {
 
-	enum TaskThreadTarget {
-		MAIN_THREAD,
-		WORKER_THREAD
-	};
 	enum TaskStatus {
 		TASK_FINISHED = 0,
 
@@ -18,15 +15,22 @@ namespace TasksLib {
 		TASK_WORKING,			// Executing
 	};
 
-	using TaskBlocking = bool;
-	using TaskPriority = uint32_t;
-
 	class TasksQueue;
 	class Task;
 
-	using TaskPtr			= std::shared_ptr<Task>;
-	using TaskUniquePtr		= std::unique_ptr<Task>;
-	using TaskWeakPtr		= std::weak_ptr<Task>;
+	using TaskPtr		= std::shared_ptr<Task>;
+	using TaskUniquePtr	= std::unique_ptr<Task>;
+	using TaskWeakPtr	= std::weak_ptr<Task>;
+
+	// Types accepted as options for tasks (in Task::Task() and Task::SetOptions()) :
+	enum TaskThreadTarget {
+		MAIN_THREAD,
+		WORKER_THREAD
+	};
+	using TaskBlocking		= bool;
+	using TaskPriority		= uint32_t;
 	using TaskExecutable	= std::function<void(TasksQueue* queue, TaskPtr task)>;
+	using TaskMilliseconds	= std::chrono::milliseconds;
+	// </Types as options>
 
 }

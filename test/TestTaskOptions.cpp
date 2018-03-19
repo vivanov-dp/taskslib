@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 
-#include <chrono>
 #include <tuple>
 #include <random>
 
@@ -34,7 +33,7 @@ namespace TasksLib {
 		EXPECT_FALSE(opt.isBlocking);
 		EXPECT_FALSE(opt.isMainThread);
 		EXPECT_EQ(opt.executable, nullptr);
-		EXPECT_EQ(opt.suspendTime, std::chrono::milliseconds(0));
+		EXPECT_EQ(opt.suspendTime, TaskMilliseconds{ 0 });
 	}
 	TEST_F(TaskOptionsTest, CreatesWithCopy) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
@@ -117,19 +116,19 @@ namespace TasksLib {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
 		auto seed = randDev();
 
-		opt.SetOptions(std::chrono::milliseconds(0));
-		ASSERT_EQ(opt.suspendTime, std::chrono::milliseconds(0));
+		opt.SetOptions(TaskMilliseconds{ 0 });
+		ASSERT_EQ(opt.suspendTime, TaskMilliseconds{ 0 });
 
-		std::chrono::milliseconds ms;
+		TaskMilliseconds ms;
 		randEng.seed(seed);
 
-		ms = std::chrono::milliseconds{ dist(randEng) };
+		ms = TaskMilliseconds{ dist(randEng) };
 		opt.SetOptions(ms);
 		EXPECT_EQ(opt.suspendTime, ms);
 
 		randEng.seed(seed);
-		opt.SetOptions(std::chrono::milliseconds(0));
-		opt.SetOptions(std::chrono::milliseconds( dist(randEng) ));
+		opt.SetOptions(TaskMilliseconds{ 0 });
+		opt.SetOptions(TaskMilliseconds{ dist(randEng) });
 		EXPECT_EQ(opt.suspendTime, ms);
 	}
 	TEST_F(TaskOptionsTest, SetsMultipleOptions) {

@@ -75,7 +75,7 @@ namespace TasksLib {
 	void TaskOptions::SetOption_(TaskExecutable&& _executable) {
 		executable = std::move(_executable);
 	}
-	void TaskOptions::SetOption_(const std::chrono::milliseconds& _ms) {
+	void TaskOptions::SetOption_(const TaskMilliseconds& _ms) {
 		suspendTime = _ms;
 	}
 
