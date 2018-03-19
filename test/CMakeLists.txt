@@ -112,5 +112,10 @@ add_executable(TestTaskOptions TestTools.h TestTaskOptions.cpp)
 target_link_libraries(TestTaskOptions TasksLib GTestMain)
 target_compile_features(TestTaskOptions PUBLIC cxx_std_17)
 
+add_executable(TestResourcePool TestTools.h TestResourcePool.cpp)
+target_link_libraries(TestResourcePool TasksLib GTestMain)
+target_compile_features(TestResourcePool PUBLIC cxx_std_17)
+
 add_test(NAME TestTask COMMAND TestTask)
 add_test(NAME TestTaskOptions COMMAND TestTaskOptions)
+add_test(NAME TestResourcePool COMMAND TestResourcePool)
