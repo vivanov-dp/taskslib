@@ -2,7 +2,9 @@
 
 #include <stack>
 #include <mutex>
+#include <memory>
 
+#include "Types.h"
 
 namespace TasksLib {
 
@@ -10,35 +12,36 @@ namespace TasksLib {
 		SharedPool based on original implementation by https://stackoverflow.com/users/1731448/swalog
 		https://stackoverflow.com/questions/27827923/c-object-pool-that-provides-items-as-smart-pointers-that-are-returned-to-pool/27837534#27837534
 	 */
+
 	template <class T>
-	class ResourcePool {
+	struct ResourceDeleter {
+		explicit ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool)
+			: pool_(pool) {}
 
-		struct ResourceDeleter {
-			explicit ResourceDeleter(std::weak_ptr<ResourcePool<T>* > pool)
-				: pool_(pool) {}
+		void operator()(T* ptr) {
+			if (!ptr) {
+				return;
+			}
 
-			void operator()(T* ptr) {
-				if (!ptr) {
+			std::unique_ptr<T> uptr(ptr);
+			if (auto poolPtr = pool_.lock()) {
+				try {
+					(*poolPtr.get())->Add(std::move(uptr));
 					return;
 				}
-
-				std::unique_ptr<T> uptr(ptr);
-				if (auto poolPtr = pool_.lock()) {
-					try {
-						(*poolPtr.get())->Add(std::move(uptr));
-						return;
-					}
-					catch (...) {}			// The above is required to never throw by c++ standard
-				}
+				catch (...) {}			// The above is required to never throw by c++ standard
 			}
-		private:
-			std::weak_ptr<ResourcePool<T>* > pool_;
-		};
+		}
+	private:
+		std::weak_ptr<ResourcePool<T>*> pool_;
+	};
 
+	template <class T>
+	class ResourcePool {
 	public:
-		using TPtr = std::unique_ptr<T, ResourceDeleter>;
+		using TPtr = std::unique_ptr<T, ResourceDeleter<T>>;
 
-		ResourcePool() : thisPtr_(new ResourcePool<T>*(this)) {}
+		ResourcePool() : thisPtr_(new ResourcePool<T>*{ this }) {}
 		virtual ~ResourcePool() {}
 
 		void Add(std::unique_ptr<T> t) {
@@ -70,7 +73,7 @@ namespace TasksLib {
 
 	private:
 		std::mutex poolMutex_;
-		std::shared_ptr<ResourcePool<T>* > thisPtr_;
-		std::stack<std::unique_ptr<T> > pool_;
+		std::shared_ptr<ResourcePool<T>*> thisPtr_;				// This is a shared_ptr to a ptr so that it wouldn't try to double-release *this when destructing the object
+		std::stack<std::unique_ptr<T>> pool_;
 	};
 }

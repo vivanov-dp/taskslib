@@ -22,6 +22,8 @@ namespace TasksLib {
 	using TaskUniquePtr	= std::unique_ptr<Task>;
 	using TaskWeakPtr	= std::weak_ptr<Task>;
 
+	template <class T> class ResourcePool;
+
 	// Types accepted as options for tasks (in Task::Task() and Task::SetOptions()) :
 	enum TaskThreadTarget {
 		MAIN_THREAD,
