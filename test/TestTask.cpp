@@ -7,17 +7,9 @@
 
 namespace TasksLib {
 
-	class TaskTest : public ::testing::Test {
+	class TaskTest : public TestWithRandom {
 	public:
-		TaskTest::TaskTest() {
-			randEng.seed(randDev());
-		}
-		TaskTest::~TaskTest() {}
-
 		Task task;
-
-		std::random_device randDev;
-		std::default_random_engine randEng;
 
 		void ApplyReschedule(Task& task) const {
 			task.ApplyReschedule_();
@@ -100,20 +92,9 @@ namespace TasksLib {
 
 	// ====== TaskWithData ==============================================================
 
-	class TaskWithDataTest : public ::testing::Test {
+	class TaskWithDataTest : public TestWithRandom {
 	public:
-		TaskWithDataTest::TaskWithDataTest()
-			: task()
-		{
-			randEng.seed(randDev());
-		}
-		TaskWithDataTest::~TaskWithDataTest() {}
-
 		TaskWithData<int> task;
-
-		std::random_device randDev;
-		std::default_random_engine randEng;
-
 	};
 
 	TEST_F(TaskWithDataTest, SetsAndGetsData) {

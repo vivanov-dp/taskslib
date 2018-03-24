@@ -8,6 +8,18 @@
 
 using namespace TasksLib;
 
+class TestWithRandom : public ::testing::Test {
+public:
+	TestWithRandom::TestWithRandom() {
+		randEng.seed(randDev());
+	}
+	virtual TestWithRandom::~TestWithRandom() {}
+
+	std::random_device randDev;
+	std::default_random_engine randEng;
+};
+
+
 TaskOptions GenerateRandomOptions(std::default_random_engine& randEng) {
 	std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
 	std::uniform_int_distribution<unsigned int> distBool(0, 1);

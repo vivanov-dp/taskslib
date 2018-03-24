@@ -8,17 +8,9 @@
 
 namespace TasksLib {
 
-	class TaskOptionsTest : public ::testing::Test {
+	class TaskOptionsTest : public TestWithRandom {
 	public:
-		TaskOptionsTest() {
-			randEng.seed(randDev());
-		}
-		~TaskOptionsTest() {}
-
 		TaskOptions opt;
-
-		std::random_device randDev;
-		std::default_random_engine randEng;
 
 		void TestLambda(TaskOptions& optTested, ExecutableTester& execTest) {
 			ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
