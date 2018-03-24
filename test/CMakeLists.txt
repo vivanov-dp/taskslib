@@ -83,7 +83,7 @@ set_target_properties(GTestMain PROPERTIES
 # define imported library GMock
 add_library(GMock IMPORTED STATIC GLOBAL)
 set_target_properties(GMock PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES     "${GMOCK_INCLUDES}"
+    INTERFACE_INCLUDE_DIRECTORIES     "${GTEST_INCLUDES};${GMOCK_INCLUDES}"
     IMPORTED_LINK_INTERFACE_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
     ${GMOCK_IMPORTED_LOCATION}
     )
@@ -113,7 +113,7 @@ target_link_libraries(TestTaskOptions TasksLib GTestMain)
 target_compile_features(TestTaskOptions PUBLIC cxx_std_17)
 
 add_executable(TestResourcePool TestTools.h TestResourcePool.cpp)
-target_link_libraries(TestResourcePool TasksLib GTestMain)
+target_link_libraries(TestResourcePool TasksLib GMockMain)
 target_compile_features(TestResourcePool PUBLIC cxx_std_17)
 
 add_test(NAME TestTask COMMAND TestTask)
