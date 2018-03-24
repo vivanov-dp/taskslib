@@ -44,10 +44,10 @@ namespace TasksLib {
 		ResourcePool() : thisPtr_(new ResourcePool<T>*{ this }) {}
 		virtual ~ResourcePool() {}
 
-		void Add(std::unique_ptr<T> t) {
+		virtual void Add(std::unique_ptr<T> elem) {
 			std::lock_guard<std::mutex> lock(poolMutex_);
 
-			pool_.push(std::move(t));
+			pool_.push(std::move(elem));
 		}
 
 		TPtr Acquire() {
