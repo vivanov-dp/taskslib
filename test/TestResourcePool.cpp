@@ -10,6 +10,8 @@
 
 namespace TasksLib {
 
+	using namespace ::testing;
+
 	template <class T>
 	class MockResourcePool : public ResourcePool<T> {
 	public:
@@ -19,7 +21,6 @@ namespace TasksLib {
 
 		MOCK_METHOD1_T(Add_, void(T* elem));
 	};
-
 	class ResourceDeleterTest : public TestWithRandom {
 	public:
 		std::shared_ptr<ResourcePool<int> *> resPool;
@@ -30,8 +31,6 @@ namespace TasksLib {
 			resPoolWeak = std::weak_ptr<ResourcePool<int>*>(resPool);
 		}
 	};
-
-	using namespace ::testing;
 	TEST_F(ResourceDeleterTest, Creates) {
 		initPointers(new ResourcePool<int>{});
 		EXPECT_NO_THROW(ResourceDeleter<int> resDel{ resPoolWeak });
@@ -63,7 +62,6 @@ namespace TasksLib {
 	class ResourcePoolTest : public TestWithRandom {
 	public:
 	};
-
 	TEST_F(ResourcePoolTest, Test1) {
 		EXPECT_TRUE(true);
 	}
