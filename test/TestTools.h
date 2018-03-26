@@ -2,6 +2,8 @@
 
 #include <random>
 #include <chrono>
+#include <string>
+#include <sstream>
 
 #include "Types.h"
 #include "TaskOptions.h"
@@ -60,3 +62,15 @@ public:
 		generated = 0;
 	}
 };
+
+std::string GenerateRandomString(const size_t minLen, const size_t maxLen, std::default_random_engine& randEng) {
+	std::uniform_int_distribution<unsigned int> distLength(static_cast<unsigned int>(minLen), static_cast<unsigned int>(maxLen));
+	std::uniform_int_distribution<unsigned short> distChar(32, 126);
+	std::stringstream buff;
+
+	for (int i = distLength(randEng); i > 0; i--) {
+		buff << static_cast<char>(distChar(randEng));
+	}
+
+	return buff.str();
+}
