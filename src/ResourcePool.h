@@ -63,10 +63,9 @@ namespace TasksLib {
 			return std::move(tmpUPtr);
 		}
 
-		bool isEmpty() const {
+		bool IsEmpty() const {
 			return pool_.empty();
 		}
-
 		size_t Size() const {
 			return pool_.size();
 		}
