@@ -12,8 +12,7 @@ namespace TasksLib {
 	class Task {
 	public:
 		Task();
-		/*
-		   Creates Task with the specified set of options
+		/* Creates Task with the specified set of options
 		   Usage: Task( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
 		*/
 		template <typename... Ts>
@@ -25,14 +24,15 @@ namespace TasksLib {
 		TaskOptions const& GetRescheduleOptions() const;
 		const bool WillReschedule() const;
 
+		/* Sets the task up for another run trough the task queue with a new set of options.
+		   This method can be used by the task callback to keep the task going.
+		   If Reschedule( ... ) is not called, the task is complete and is removed from the queue.
+		*/
 		template <typename... Ts>
 		void Reschedule(Ts&& ...ts);
 
 	protected:
-		std::mutex	dataMutex_;
-
-	protected:
-		std::mutex& GetDataMutex_();
+		std::mutex& GetTaskMutex_();
 		void ApplyReschedule_(std::unique_lock<std::mutex> lock);
 		void ResetReschedule_(std::unique_lock<std::mutex> lock);
 		void Execute(TasksQueue* queue, TaskPtr task);
@@ -44,6 +44,7 @@ namespace TasksLib {
 		bool		doReschedule_;
 
 	private:
+		std::mutex	taskMutex_;
 		void ApplyReschedule_();
 		void ResetReschedule_();
 
@@ -59,7 +60,7 @@ namespace TasksLib {
 	}
 	template <typename... Ts>
 	void Task::Reschedule(Ts&& ... ts) {
-		std::lock_guard<std::mutex> lock(dataMutex_);
+		std::lock_guard<std::mutex> lock(taskMutex_);
 
 		rescheduleOptions_.SetOptions(std::forward<Ts>(ts)...);
 		doReschedule_ = true;
@@ -78,12 +79,12 @@ namespace TasksLib {
 		void SetData(std::shared_ptr<T> data);
 
 	private:
-		std::shared_ptr<T> data_;
+		std::mutex			dataMutex_;
+		std::shared_ptr<T>	data_;
 	};
 
 	template <class T>
 	TaskWithData<T>::~TaskWithData() {}
-
 	template <class T>
 	std::shared_ptr<T> TaskWithData<T>::GetData() {
 		std::lock_guard<std::mutex> lock(dataMutex_);

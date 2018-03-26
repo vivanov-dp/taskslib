@@ -94,7 +94,7 @@ namespace TasksLib
 	bool TasksQueue::AddTask(TaskPtr task)
 	{
 		++stats_.added_;
-		std::unique_lock<std::mutex> lock(task->GetDataMutex_());
+		std::unique_lock<std::mutex> lock(task->GetTaskMutex_());
 		return AddTask(task, std::move(lock));
 	};
 	bool TasksQueue::AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTaskData)
@@ -166,7 +166,7 @@ namespace TasksLib
 				task = tasks_.front();
 				if (task)
 				{
-					std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
+					std::lock_guard<std::mutex> lockTaskData(task->GetTaskMutex_());
 					if ((task->GetOptions().isBlocking && ignoreBlocking)
 						|| (task->GetOptions().priority < runningPriority_)
 					   )
@@ -211,7 +211,7 @@ namespace TasksLib
 				while ((it != scheduledTasks_.end()) && (it->first < now))
 				{
 					auto task = it->second;
-					std::unique_lock<std::mutex> lockTask(task->GetDataMutex_());
+					std::unique_lock<std::mutex> lockTask(task->GetTaskMutex_());
 					task->options_.suspendTime = std::chrono::milliseconds(0);
 					runTasks.push_back(task);
 					it = scheduledTasks_.erase(it);
@@ -261,7 +261,7 @@ namespace TasksLib
 
 					if (task)
 					{
-						std::lock_guard<std::mutex> lockTaskData(task->GetDataMutex_());
+						std::lock_guard<std::mutex> lockTaskData(task->GetTaskMutex_());
 
 						if (task->GetOptions().priority >= runningPriority_)
 						{
@@ -308,7 +308,7 @@ namespace TasksLib
 	{
 		--stats_.total_;
 
-		std::unique_lock<std::mutex> lockTaskData(task->GetDataMutex_());
+		std::unique_lock<std::mutex> lockTaskData(task->GetTaskMutex_());
 		if (task->doReschedule_)
 		{
 			task->ApplyReschedule_();

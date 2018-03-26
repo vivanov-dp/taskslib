@@ -26,8 +26,8 @@ namespace TasksLib {
 		return doReschedule_;
 	}
 
-	std::mutex& Task::GetDataMutex_() {
-		return dataMutex_;
+	std::mutex& Task::GetTaskMutex_() {
+		return taskMutex_;
 	}
 
 	/* This is called by the queue to reset the reschedule options before running the task */
@@ -39,7 +39,7 @@ namespace TasksLib {
 	}
 	void Task::Execute(TasksQueue* queue, TaskPtr task) {
 		{
-			std::unique_lock<std::mutex> lock(dataMutex_);
+			std::unique_lock<std::mutex> lock(taskMutex_);
 			if (options_.executable) {
 				status_ = TASK_WORKING;
 				ResetReschedule_(std::move(lock));			// This releases the lock
@@ -48,7 +48,7 @@ namespace TasksLib {
 		}
 
 		{
-			std::lock_guard<std::mutex> lock(dataMutex_);
+			std::lock_guard<std::mutex> lock(taskMutex_);
 			if (!doReschedule_) {
 				status_ = TASK_FINISHED;
 			}
