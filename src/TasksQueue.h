@@ -12,8 +12,7 @@
 namespace TasksLib {
 
 	template<typename T>
-	struct TasksQueuePerformanceStats
-	{
+	struct TasksQueuePerformanceStats {
 		TasksQueuePerformanceStats()
 			: added_(0)
 			, completed_(0)
@@ -31,11 +30,9 @@ namespace TasksLib {
 		T total_;
 	};
 
-	class TasksQueue
-	{
+	class TasksQueue {
 	public:
-		struct Configuration
-		{
+		struct Configuration {
 			Configuration();
 			Configuration(unsigned blocking, unsigned nonBlocking);
 			Configuration(unsigned blocking, unsigned nonBlocking, unsigned scheduling);
@@ -92,8 +89,7 @@ namespace TasksLib {
 	};
 
 	// ===== TasksQueueContainer ========================================================
-	class TasksQueuesContainer
-	{
+	class TasksQueuesContainer {
 	public:
 		TasksQueuesContainer();
 		virtual ~TasksQueuesContainer();

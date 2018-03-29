@@ -1,11 +1,10 @@
-#include "TasksQueue.h"
-
 #include <tuple>
 #include <chrono>
 #include <thread>
 
-#include "Task.h"
+#include "TasksQueue.h"
 #include "TasksThread.h"
+#include "Task.h"
 
 namespace TasksLib {
 

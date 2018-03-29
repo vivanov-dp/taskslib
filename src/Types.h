@@ -8,6 +8,7 @@
 namespace TasksLib {
 
 	// === Classes =====
+	class TaskOptions;
 	class Task;
 	class TasksThread;
 	class TasksQueue;
