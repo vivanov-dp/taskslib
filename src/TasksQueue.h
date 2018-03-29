@@ -7,20 +7,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Task.h"
+#include "Types.h"
 
-
-
-namespace TasksLib
-{
-	class TaskThread;
-	class TasksQueuesContainer;
-
-	using scheduleClock = std::chrono::steady_clock;
-	using scheduleTimePoint = std::chrono::time_point<scheduleClock>;
-	using scheduleDuration = scheduleClock::duration;
-	using scheduleMap = std::multimap<scheduleTimePoint, TaskPtr>;
-	using schedulePair = std::pair<scheduleTimePoint, TaskPtr>;
+namespace TasksLib {
 
 	template<typename T>
 	struct TasksQueuePerformanceStats
@@ -83,11 +72,11 @@ namespace TasksLib
 		// Mutexes lock order is - (Task->dataMutex), dataMutex, schedulerMutex, tasksMutex, mtTasksMutex
 
 		std::mutex dataMutex_;
-		std::vector<std::shared_ptr<TaskThread>> threads_;
+		std::vector<std::shared_ptr<TasksThread>> threads_;
 
 		std::mutex schedulerMutex_;
 		std::condition_variable scheduleCondition_;
-		std::vector<std::shared_ptr<TaskThread>> schedulingThreads_;
+		std::vector<std::shared_ptr<TasksThread>> schedulingThreads_;
 		scheduleMap scheduledTasks_;
 
 		std::atomic<scheduleTimePoint> scheduleEarliest_;

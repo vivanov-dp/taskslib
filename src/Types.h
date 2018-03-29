@@ -3,9 +3,17 @@
 #include <memory>
 #include <functional>
 #include <chrono>
+#include <map>
 
 namespace TasksLib {
 
+	// === Classes =====
+	class Task;
+	class TasksThread;
+	class TasksQueue;
+	class TasksQueuesContainer;
+
+	// === Task =====
 	enum TaskStatus {
 		TASK_FINISHED = 0,
 
@@ -14,9 +22,6 @@ namespace TasksLib {
 		TASK_IN_QUEUE,			// Waiting in a queue
 		TASK_WORKING,			// Executing
 	};
-
-	class TasksQueue;
-	class Task;
 
 	using TaskPtr		= std::shared_ptr<Task>;
 	using TaskUniquePtr	= std::unique_ptr<Task>;
@@ -34,5 +39,12 @@ namespace TasksLib {
 	using TaskExecutable	= std::function<void(TasksQueue* queue, TaskPtr task)>;
 	using TaskMilliseconds	= std::chrono::milliseconds;
 	// </Types as options>
+
+	// === TasksQueue =====
+	using scheduleClock		= std::chrono::steady_clock;
+	using scheduleTimePoint	= std::chrono::time_point<scheduleClock>;
+	using scheduleDuration	= scheduleClock::duration;
+	using scheduleMap		= std::multimap<scheduleTimePoint, TaskPtr>;
+	using schedulePair		= std::pair<scheduleTimePoint, TaskPtr>;
 
 }

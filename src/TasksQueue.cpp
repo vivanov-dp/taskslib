@@ -4,29 +4,10 @@
 #include <chrono>
 #include <thread>
 
-namespace TasksLib
-{
-	class TaskThread : public std::thread
-	{
-	public:
-		template <class F, class... Args>
-		explicit TaskThread(F&& f, Args&&... args) 
-			: std::thread(f, args...) {
-		};
-		template <class F, class... Args>
-		explicit TaskThread(TasksQueue& queue, const uint32_t threadNum, const bool ignoreBlocking, F&& f, Args&&... args)
-			: std::thread(f, args...)
-			, queue_(queue)
-			, threadNum_(threadNum)
-			, ignoreBlocking_(ignoreBlocking)
-		{
-		}
+#include "Task.h"
+#include "TasksThread.h"
 
-	private:
-		TasksQueue& queue_;
-		uint32_t threadNum_;
-		bool ignoreBlocking_;
-	};
+namespace TasksLib {
 
 	// ===== TasksQueue::Configuration ==================================================
 	TasksQueue::Configuration::Configuration()
@@ -290,17 +271,17 @@ namespace TasksLib
 		uint32_t i;
 		for (i = 0; i < countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TaskThread>(*this, i, true, &TasksQueue::ThreadExecuteTasks, this, i, true);
+			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, i, true);
 			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TaskThread>(*this, i, false, &TasksQueue::ThreadExecuteTasks, this, i, false);
+			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, i, false);
 			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking + countScheduling; ++i)
 		{
-			auto thread = std::make_shared<TaskThread>(*this, i, false, &TasksQueue::ThreadExecuteScheduledTasks, this, i);
+			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this, i);
 			schedulingThreads_.push_back(thread);
 		}
 	}

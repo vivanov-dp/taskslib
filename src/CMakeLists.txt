@@ -1,4 +1,4 @@
-set (HEADERS Types.h TaskOptions.h Task.h TasksQueue.h ResourcePool.h)
+set (HEADERS Types.h TaskOptions.h Task.h TasksThread.h TasksQueue.h ResourcePool.h)
 set (SOURCE TaskOptions.cpp Task.cpp TasksQueue.cpp)
 
 add_library(TasksLib STATIC ${HEADERS} ${SOURCE})

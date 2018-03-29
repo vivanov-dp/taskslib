@@ -25,7 +25,6 @@ namespace TasksLib {
 	private:
 		std::weak_ptr<ResourcePool<T>*> pool_;
 	};
-
 	template <class T>
 	class ResourcePool {
 	public:
