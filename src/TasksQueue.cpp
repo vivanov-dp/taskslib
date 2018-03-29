@@ -2,9 +2,9 @@
 #include <chrono>
 #include <thread>
 
-#include "TasksQueue.h"
 #include "TasksThread.h"
 #include "Task.h"
+#include "TasksQueue.h"
 
 namespace TasksLib {
 
@@ -125,7 +125,7 @@ namespace TasksLib {
 		return true;
 	}
 
-	void TasksQueue::ThreadExecuteTasks(const uint32_t threadNum, const bool ignoreBlocking)
+	void TasksQueue::ThreadExecuteTasks(const bool ignoreBlocking)
 	{
 		for (;;)
 		{
@@ -167,7 +167,7 @@ namespace TasksLib {
 			}
 		}
 	}
-	void TasksQueue::ThreadExecuteScheduledTasks(const uint32_t threadNum)
+	void TasksQueue::ThreadExecuteScheduledTasks()
 	{
 		for (;;)
 		{
@@ -270,17 +270,17 @@ namespace TasksLib {
 		uint32_t i;
 		for (i = 0; i < countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, i, true);
+			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, true);
 			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking; ++i)
 		{
-			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, i, false);
+			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, false);
 			threads_.push_back(thread);
 		}
 		for (; i < count + countNonBlocking + countScheduling; ++i)
 		{
-			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this, i);
+			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this);
 			schedulingThreads_.push_back(thread);
 		}
 	}

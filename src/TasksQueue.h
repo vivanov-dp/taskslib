@@ -50,8 +50,8 @@ namespace TasksLib {
 
 		bool AddTask(TaskPtr task);
 		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTaskData);
-		void ThreadExecuteTasks(const uint32_t threadNum, const bool ignoreBlocking);
-		void ThreadExecuteScheduledTasks(const uint32_t threadNum);
+		void ThreadExecuteTasks(const bool ignoreBlocking);
+		void ThreadExecuteScheduledTasks();
 
 		TasksQueuePerformanceStats<std::int32_t> GetPerformanceStats(bool reset);
 

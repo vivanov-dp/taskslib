@@ -20,8 +20,6 @@ public:
 	std::random_device randDev;
 	std::default_random_engine randEng;
 };
-
-
 TaskOptions GenerateRandomOptions(std::default_random_engine& randEng) {
 	std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
 	std::uniform_int_distribution<unsigned int> distBool(0, 1);
@@ -34,7 +32,6 @@ TaskOptions GenerateRandomOptions(std::default_random_engine& randEng) {
 
 	return TaskOptions{ priority, isBlocking, target, ms };
 }
-
 class ExecutableTester {
 public:
 	ExecutableTester(std::default_random_engine& _randEng)
@@ -62,7 +59,6 @@ public:
 		generated = 0;
 	}
 };
-
 std::string GenerateRandomString(const size_t minLen, const size_t maxLen, std::default_random_engine& randEng) {
 	std::uniform_int_distribution<unsigned int> distLength(static_cast<unsigned int>(minLen), static_cast<unsigned int>(maxLen));
 	std::uniform_int_distribution<unsigned short> distChar(32, 126);
