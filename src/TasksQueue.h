@@ -34,7 +34,7 @@ namespace TasksLib {
 	public:
 		struct Configuration {
 			Configuration();
-			Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads, unsigned numSchedulingThreads = 0);
+			Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads = 0, unsigned numSchedulingThreads = 0);
 
 			unsigned blockingThreads_;
 			unsigned nonBlockingThreads_;
@@ -52,6 +52,24 @@ namespace TasksLib {
 		const unsigned numNonBlockingThreads() const;
 		const unsigned numSchedulingThreads() const;
 
+		/* Initialize the threads queue with the specified number of threads 
+		   @param configuration
+		     
+			 struct Configuration {
+		       Configuration();
+		       Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads = 0, unsigned numSchedulingThreads = 0);
+
+		       unsigned blockingThreads_;
+		       unsigned nonBlockingThreads_;
+		       unsigned schedulingThreads_;
+		     };
+		   
+		   numBlockingThreads should be at least 1.
+		   numSchedulingThreads = 0 will disable the ability to put tasks on delay.
+		   
+		   Default constructor yields some sensible minimum thread numbers, with at least 1 in each category.
+		   The TasksQueue will not initialize if the number of blocking threads requested is 0.
+		*/
 		void Initialize(const Configuration& configuration);
 		void ShutDown();
 
@@ -79,9 +97,9 @@ namespace TasksLib {
 		
 		unsigned numNonBlockingThreads_;
 
-		// Mutexes lock order is - (Task->dataMutex), dataMutex, schedulerMutex, tasksMutex, mtTasksMutex
+		// Mutexes lock order is - (Task->dataMutex), initMutex, schedulerMutex, tasksMutex, mtTasksMutex
 
-		std::mutex dataMutex_;
+		std::mutex initMutex_;				// To ensure that calling Initialize() and/or Shutdown() from many threads at the same time is going to work
 		std::vector<std::shared_ptr<TasksThread>> workerThreads_;
 
 		std::mutex schedulerMutex_;

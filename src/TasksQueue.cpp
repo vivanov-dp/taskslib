@@ -8,12 +8,13 @@
 
 #define DEFAULT_TQUEUE_BLOCKING		6
 #define DEFAULT_TQUEUE_NONBLOCKING	2
+#define DEFAULT_TQUEUE_SCHEDULING	1
 
 namespace TasksLib {
 
 	// ===== TasksQueue::Configuration ==================================================
 	TasksQueue::Configuration::Configuration()
-		: Configuration(DEFAULT_TQUEUE_BLOCKING, DEFAULT_TQUEUE_NONBLOCKING) {}
+		: Configuration(DEFAULT_TQUEUE_BLOCKING, DEFAULT_TQUEUE_NONBLOCKING, DEFAULT_TQUEUE_SCHEDULING) {}
 	TasksQueue::Configuration::Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads, unsigned numSchedulingThreads)
 		: blockingThreads_(numBlockingThreads)
 		, nonBlockingThreads_(numNonBlockingThreads)
@@ -52,17 +53,21 @@ namespace TasksLib {
 	}
 
 	void TasksQueue::Initialize(const Configuration& configuration) {
-		if (isInitialized_) {
+		std::lock_guard<std::mutex> guard(initMutex_);
+
+		if (isInitialized_ || isShutDown_) {
+			return;
+		}
+		if (configuration.blockingThreads_ < 1) {		// It's pointless without any normal worker threads
 			return;
 		}
 
-		std::lock_guard<std::mutex> guard(dataMutex_);
 		CreateThreads(configuration.blockingThreads_, configuration.nonBlockingThreads_, configuration.schedulingThreads_);
 		numNonBlockingThreads_ = configuration.nonBlockingThreads_;
 		isInitialized_ = true;
 	}
 	void TasksQueue::ShutDown() {
-		if (!isInitialized_) {
+		if (!isInitialized_ || isShutDown_) {
 			return;
 		}
 
@@ -78,8 +83,10 @@ namespace TasksLib {
 		}
 
 		{
-			std::lock_guard<std::mutex> guard(dataMutex_);
+			std::lock_guard<std::mutex> guard(initMutex_);
 			workerThreads_.clear();
+			schedulingThreads_.clear();
+			numNonBlockingThreads_ = 0;
 			isInitialized_ = false;
 		}
 	}
@@ -301,6 +308,11 @@ namespace TasksLib {
 			schedulingThreads_.push_back(thread);
 		}
 	}
+
+
+
+
+
 	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task)
 	{
 		--stats_.total_;
