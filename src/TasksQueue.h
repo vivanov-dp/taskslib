@@ -14,20 +14,20 @@ namespace TasksLib {
 	template<typename T>
 	struct TasksQueuePerformanceStats {
 		TasksQueuePerformanceStats()
-			: added_(0)
-			, completed_(0)
-			, suspended_(0)
-			, resumed_(0)
-			, waiting_(0)
-			, total_(0)
+			: added(0)
+			, completed(0)
+			, suspended(0)
+			, resumed(0)
+			, waiting(0)
+			, total(0)
 		{}
 
-		T added_;
-		T completed_;
-		T suspended_;
-		T resumed_;
-		T waiting_;
-		T total_;
+		T added;			// accummulating
+		T completed;
+		T suspended;
+		T resumed;
+		T waiting;			// current (does not reset)
+		T total;
 	};
 
 	class TasksQueue {
@@ -52,6 +52,8 @@ namespace TasksLib {
 		const unsigned numNonBlockingThreads() const;
 		const unsigned numSchedulingThreads() const;
 
+		TasksQueuePerformanceStats<std::int32_t> GetPerformanceStats(const bool reset = false);
+
 		/* Initialize the threads queue with the specified number of threads 
 		   @param configuration
 		     
@@ -73,22 +75,26 @@ namespace TasksLib {
 		void Initialize(const Configuration& configuration);
 		void ShutDown();
 
-
-
-
-
 		bool AddTask(TaskPtr task);
-		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTaskData);
-		void ThreadExecuteTasks(const bool ignoreBlocking);
-		void ThreadExecuteScheduledTasks();
 
-		TasksQueuePerformanceStats<std::int32_t> GetPerformanceStats(bool reset);
+
+
+		
 
 		void Update();
 
 	private:
 		void CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads);
+		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask);
+		
+		
 		void RescheduleTask(std::shared_ptr<Task> task);
+
+		
+
+		void ThreadExecuteTasks(const bool ignoreBlocking);
+		void ThreadExecuteScheduledTasks();
+
 
 	private:
 		std::atomic<bool> isInitialized_;
@@ -96,6 +102,7 @@ namespace TasksLib {
 		std::atomic<unsigned int> runningPriority_;
 		
 		unsigned numNonBlockingThreads_;
+		TasksQueuePerformanceStats<std::atomic<std::int32_t>> stats_;
 
 		// Mutexes lock order is - (Task->dataMutex), initMutex, schedulerMutex, tasksMutex, mtTasksMutex
 
@@ -115,8 +122,6 @@ namespace TasksLib {
 
 		std::mutex mtTasksMutex_;
 		std::vector<TaskPtr> mtTasks_;
-
-		TasksQueuePerformanceStats<std::atomic<std::int32_t>> stats_;
 	};
 
 	// ===== TasksQueueContainer ========================================================
