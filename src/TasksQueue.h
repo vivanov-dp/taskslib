@@ -34,8 +34,7 @@ namespace TasksLib {
 	public:
 		struct Configuration {
 			Configuration();
-			Configuration(unsigned blocking, unsigned nonBlocking);
-			Configuration(unsigned blocking, unsigned nonBlocking, unsigned scheduling);
+			Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads, unsigned numSchedulingThreads = 0);
 
 			unsigned blockingThreads_;
 			unsigned nonBlockingThreads_;
@@ -45,8 +44,20 @@ namespace TasksLib {
 		TasksQueue();
 		virtual ~TasksQueue();
 
+		const bool isInitialized() const;
+		const bool isShutDown() const;
+
+		const unsigned numWorkerThreads() const;
+		const unsigned numBlockingThreads() const;
+		const unsigned numNonBlockingThreads() const;
+		const unsigned numSchedulingThreads() const;
+
 		void Initialize(const Configuration& configuration);
 		void ShutDown();
+
+
+
+
 
 		bool AddTask(TaskPtr task);
 		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTaskData);
@@ -58,18 +69,20 @@ namespace TasksLib {
 		void Update();
 
 	private:
-		void CreateThreads(const unsigned count, const unsigned countNonBlocking, const unsigned scheduling);
+		void CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads);
 		void RescheduleTask(std::shared_ptr<Task> task);
 
 	private:
-		std::atomic<bool> shutDown_;
 		std::atomic<bool> isInitialized_;
+		std::atomic<bool> isShutDown_;
 		std::atomic<unsigned int> runningPriority_;
+		
+		unsigned numNonBlockingThreads_;
 
 		// Mutexes lock order is - (Task->dataMutex), dataMutex, schedulerMutex, tasksMutex, mtTasksMutex
 
 		std::mutex dataMutex_;
-		std::vector<std::shared_ptr<TasksThread>> threads_;
+		std::vector<std::shared_ptr<TasksThread>> workerThreads_;
 
 		std::mutex schedulerMutex_;
 		std::condition_variable scheduleCondition_;

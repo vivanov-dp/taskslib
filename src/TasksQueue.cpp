@@ -6,70 +6,86 @@
 #include "Task.h"
 #include "TasksQueue.h"
 
+#define DEFAULT_TQUEUE_BLOCKING		6
+#define DEFAULT_TQUEUE_NONBLOCKING	2
+
 namespace TasksLib {
 
 	// ===== TasksQueue::Configuration ==================================================
 	TasksQueue::Configuration::Configuration()
-		: Configuration(6, 2) {}
-	TasksQueue::Configuration::Configuration(unsigned blocking, unsigned nonBlocking)
-		: Configuration(blocking, nonBlocking, 0) {}
-	TasksQueue::Configuration::Configuration(unsigned blocking, unsigned nonBlocking, unsigned scheduling)
-		: blockingThreads_(blocking)
-		, nonBlockingThreads_(nonBlocking)
-		, schedulingThreads_(scheduling) {}
+		: Configuration(DEFAULT_TQUEUE_BLOCKING, DEFAULT_TQUEUE_NONBLOCKING) {}
+	TasksQueue::Configuration::Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads, unsigned numSchedulingThreads)
+		: blockingThreads_(numBlockingThreads)
+		, nonBlockingThreads_(numNonBlockingThreads)
+		, schedulingThreads_(numSchedulingThreads) {}
 
 	// ===== TasksQueue =================================================================
 	TasksQueue::TasksQueue()
 		: isInitialized_(false)
-		, shutDown_(false)
+		, isShutDown_(false)
 		, runningPriority_(0)
+		, numNonBlockingThreads_(0)
 		, scheduleEarliest_(scheduleTimePoint::min())
-	{
-	}
-	TasksQueue::~TasksQueue()
-	{
+	{}
+	TasksQueue::~TasksQueue() {
 		ShutDown();
 	}
 
-	void TasksQueue::Initialize(const Configuration& configuration)
-	{
-		std::lock_guard<std::mutex> guard(dataMutex_);
+	const bool TasksQueue::isInitialized() const {
+		return isInitialized_;
+	}
+	const bool TasksQueue::isShutDown() const {
+		return isShutDown_;
+	}
 
-		if (isInitialized_)
-		{
+	const unsigned TasksQueue::numWorkerThreads() const {
+		return static_cast<unsigned>(workerThreads_.size());
+	}
+	const unsigned TasksQueue::numBlockingThreads() const {
+		return static_cast<unsigned>(workerThreads_.size()) - numNonBlockingThreads_;
+	}
+	const unsigned TasksQueue::numNonBlockingThreads() const {
+		return numNonBlockingThreads_;
+	}
+	const unsigned TasksQueue::numSchedulingThreads() const {
+		return static_cast<unsigned>(schedulingThreads_.size());
+	}
+
+	void TasksQueue::Initialize(const Configuration& configuration) {
+		if (isInitialized_) {
 			return;
 		}
 
+		std::lock_guard<std::mutex> guard(dataMutex_);
 		CreateThreads(configuration.blockingThreads_, configuration.nonBlockingThreads_, configuration.schedulingThreads_);
-
+		numNonBlockingThreads_ = configuration.nonBlockingThreads_;
 		isInitialized_ = true;
 	}
-	void TasksQueue::ShutDown()
-	{
-		if (!isInitialized_)
-		{
+	void TasksQueue::ShutDown() {
+		if (!isInitialized_) {
 			return;
 		}
 
-		shutDown_ = true;
+		isShutDown_ = true;
 
 		tasksCondition_.notify_all();
 		scheduleCondition_.notify_all();
-		for (auto thread : threads_)
-		{
+		for (std::shared_ptr<TasksThread> thread : workerThreads_) {
 			thread->join();
 		}
-		for (auto thread : schedulingThreads_)
-		{
+		for (std::shared_ptr<TasksThread> thread : schedulingThreads_) {
 			thread->join();
 		}
 
 		{
 			std::lock_guard<std::mutex> guard(dataMutex_);
-			threads_.clear();
+			workerThreads_.clear();
 			isInitialized_ = false;
 		}
 	}
+
+
+
 
 	bool TasksQueue::AddTask(TaskPtr task)
 	{
@@ -133,12 +149,12 @@ namespace TasksLib {
 			{
 				std::unique_lock<std::mutex> lockTasks(tasksMutex_);
 
-				while (!shutDown_ && tasks_.empty())
+				while (!isShutDown_ && tasks_.empty())
 				{
 					tasksCondition_.wait(lockTasks);
 				}
 
-				if (shutDown_)
+				if (isShutDown_)
 				{
 					break;
 				}
@@ -176,12 +192,12 @@ namespace TasksLib {
 			{
 				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
 
-				while (!shutDown_ && scheduleEarliest_.load() > scheduleClock::now())
+				while (!isShutDown_ && scheduleEarliest_.load() > scheduleClock::now())
 				{
 					scheduleCondition_.wait(lockSched);
 				}
 
-				if (shutDown_)
+				if (isShutDown_)
 				{
 					break;
 				}
@@ -213,7 +229,7 @@ namespace TasksLib {
 	}
 	void TasksQueue::Update()
 	{
-		if (shutDown_)
+		if (isShutDown_)
 		{
 			return;
 		}
@@ -265,21 +281,22 @@ namespace TasksLib {
 		}
 	}
 
-	void TasksQueue::CreateThreads(const unsigned count, const unsigned countNonBlocking, const unsigned countScheduling)
-	{
+	
+	
+	
+	
+	
+	void TasksQueue::CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads) {
 		uint32_t i;
-		for (i = 0; i < countNonBlocking; ++i)
-		{
+		for (i = 0; i < numBlockingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, true);
-			threads_.push_back(thread);
+			workerThreads_.push_back(thread);
 		}
-		for (; i < count + countNonBlocking; ++i)
-		{
+		for (i = 0; i < numNonBlockingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, false);
-			threads_.push_back(thread);
+			workerThreads_.push_back(thread);
 		}
-		for (; i < count + countNonBlocking + countScheduling; ++i)
-		{
+		for (i = 0; i < numSchedulingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this);
 			schedulingThreads_.push_back(thread);
 		}
