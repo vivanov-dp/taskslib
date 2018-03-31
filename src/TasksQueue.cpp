@@ -114,154 +114,50 @@ namespace TasksLib {
 		return AddTask(task, std::move(lock));
 	};
 
-
-
-
-	void TasksQueue::ThreadExecuteTasks(const bool ignoreBlocking)
-	{
-		for (;;)
-		{
-			TaskPtr task = nullptr;
-			{
-				std::unique_lock<std::mutex> lockTasks(tasksMutex_);
-
-				while (!isShutDown_ && tasks_.empty())
-				{
-					tasksCondition_.wait(lockTasks);
-				}
-
-				if (isShutDown_)
-				{
-					break;
-				}
-
-				task = tasks_.front();
-				if (task)
-				{
-					std::lock_guard<std::mutex> lockTaskData(task->GetTaskMutex_());
-					if ((task->GetOptions().isBlocking && ignoreBlocking)
-						|| (task->GetOptions().priority < runningPriority_)
-					   )
-					{
-						task = nullptr;
-					}
-					else
-					{
-						tasks_.erase(tasks_.begin());
-					}
-				}
-			}
-
-			if (task)
-			{
-				task->Execute(this, task);
-				RescheduleTask(task);
-			}
-		}
-	}
-	void TasksQueue::ThreadExecuteScheduledTasks()
-	{
-		for (;;)
-		{
-			std::vector<TaskPtr> runTasks;
-
-			{
-				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
-
-				while (!isShutDown_ && scheduleEarliest_.load() > scheduleClock::now())
-				{
-					scheduleCondition_.wait(lockSched);
-				}
-
-				if (isShutDown_)
-				{
-					break;
-				}
-
-				auto now = scheduleClock::now();
-				auto it = scheduledTasks_.begin();
-				while ((it != scheduledTasks_.end()) && (it->first < now))
-				{
-					auto task = it->second;
-					std::unique_lock<std::mutex> lockTask(task->GetTaskMutex_());
-					task->options_.suspendTime = std::chrono::milliseconds(0);
-					runTasks.push_back(task);
-					it = scheduledTasks_.erase(it);
-				}
-
-				scheduleEarliest_ = (it != scheduledTasks_.end()) ? it->first : scheduleTimePoint::max();
-			}
-
-			while (!runTasks.empty())
-			{
-				auto task = runTasks.back();
-				++stats_.resumed;
-				--stats_.waiting;
-				--stats_.total;		// AddTask will increase this back
-				AddTask(task);
-				runTasks.pop_back();
-			}
-		}
-	}
-	void TasksQueue::Update()
-	{
-		if (isShutDown_)
-		{
+	void TasksQueue::Update() {
+		if (!isInitialized_ || isShutDown_) {
 			return;
 		}
 
-		if (scheduleEarliest_.load() <= scheduleClock::now())
-		{
+		if (scheduleEarliest_.load() <= scheduleClock::now()) {
 			scheduleCondition_.notify_one();
 		}
 
-		TaskPtr task = nullptr;
+		std::vector<TaskPtr> runTasks;
+		std::vector<TaskPtr> ignoreTasks;
+
 		{
-			std::vector<TaskPtr> runTasks;
+			std::lock_guard<std::mutex> lockTasks(mtTasksMutex_);
 
-			{
-				std::lock_guard<std::mutex> lockTasks(mtTasksMutex_);
-				if (mtTasks_.empty())
-				{
-					return;
-				}
+			for (auto task : mtTasks_) {
+				if (task) {
+					std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
 
-				while (!mtTasks_.empty())
-				{
-					task = mtTasks_.back();
-					mtTasks_.pop_back();
-
-					if (task)
-					{
-						std::lock_guard<std::mutex> lockTaskData(task->GetTaskMutex_());
-
-						if (task->GetOptions().priority >= runningPriority_)
-						{
-							runTasks.push_back(task);
-						}
-						else
-						{
-							--stats_.total;
-						}
+					if (task->GetOptions().priority >= runningPriority_) {
+						runTasks.push_back(task);
+					}
+					else {
+						ignoreTasks.push_back(task);
 					}
 				}
 			}
 
-			while (!runTasks.empty())
-			{
-				task = runTasks.back();
-				task->Execute(this, task);
-				RescheduleTask(task);
-				runTasks.pop_back();
-			}
+			mtTasks_ = std::move(ignoreTasks);
+		}
+
+		// TODO: Don't execute all tasks at once, instead examine stats and come up with a smaller number, but staying ahead of newly added ones.
+		//		 Make that an option switch:
+		//			1. One per Update() (risks falling behind)
+		//			2. All per Update() (risks delaying the main thread)
+		//			3. Auto (passive/eager) (less predictable)
+		while (!runTasks.empty()) {
+			TaskPtr task = runTasks.back();
+			task->Execute(this, task);
+			RescheduleTask(task);
+			runTasks.pop_back();
 		}
 	}
 
-	
-	
-	
-	
-	
 	void TasksQueue::CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads) {
 		uint32_t i;
 		for (i = 0; i < numBlockingThreads; ++i) {
@@ -278,7 +174,7 @@ namespace TasksLib {
 		}
 	}
 	bool TasksQueue::AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask) {
-		if (!task) {
+		if (!task || isShutDown_) {
 			return false;
 		}
 
@@ -288,6 +184,7 @@ namespace TasksLib {
 				scheduledTasks_.insert(schedulePair(scheduleClock::now() + task->options_.suspendTime, task));
 				++stats_.suspended;
 				++stats_.waiting;
+				task->status_ = TaskStatus::TASK_SUSPENDED;
 			}
 
 			scheduleEarliest_ = scheduleTimePoint::min();
@@ -316,29 +213,93 @@ namespace TasksLib {
 		return true;
 	}
 
+	void TasksQueue::ThreadExecuteTasks(const bool ignoreBlocking) {
+		for (;;) {
+			TaskPtr task = nullptr;
+			{
+				std::unique_lock<std::mutex> lockTasks(tasksMutex_);
 
+				while (!isShutDown_ && tasks_.empty()) {
+					tasksCondition_.wait(lockTasks);
+				}
+				if (isShutDown_) {
+					break;
+				}
 
+				task = tasks_.front();
+				if (task) {
+					std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
+					if ((task->GetOptions().isBlocking && ignoreBlocking)
+						|| (task->GetOptions().priority < runningPriority_)
+						)
+					{
+						task = nullptr;
+					}
+					else {
+						tasks_.erase(tasks_.begin());
+					}
+				}
+			}
 
+			if (task) {
+				task->Execute(this, task);
+				RescheduleTask(task);
+			}
+		}
+	}
+	void TasksQueue::ThreadExecuteScheduledTasks() {
+		for (;;) {
+			std::vector<TaskPtr> runTasks;
 
-	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task)
-	{
-		--stats_.total;
+			{
+				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
+
+				while (!isShutDown_ && scheduleEarliest_.load() > scheduleClock::now()) {
+					scheduleCondition_.wait(lockSched);
+				}
+				if (isShutDown_) {
+					break;
+				}
+
+				auto now = scheduleClock::now();
+				auto it = scheduledTasks_.begin();
+				while ((it != scheduledTasks_.end()) && (it->first < now)) {
+					auto task = it->second;
+					std::unique_lock<std::mutex> lockTask(task->GetTaskMutex_());
+					task->options_.suspendTime = std::chrono::milliseconds(0);
+					runTasks.push_back(task);
+					it = scheduledTasks_.erase(it);
+				}
+
+				scheduleEarliest_ = (it != scheduledTasks_.end()) ? it->first : scheduleTimePoint::max();
+			}
+
+			while (!runTasks.empty()) {
+				auto task = runTasks.back();
+				++stats_.resumed;
+				--stats_.waiting;
+				--stats_.total;		// AddTask will increase this back
+				AddTask(task);
+				runTasks.pop_back();
+			}
+		}
+	}
+	
+	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task) {
+		--stats_.total;		// AddTask will increase this back
 
 		std::unique_lock<std::mutex> lockTaskData(task->GetTaskMutex_());
-		if (task->doReschedule_)
-		{
+		if (task->doReschedule_) {
 			task->ApplyReschedule_();
 			AddTask(task, std::move(lockTaskData));
-		}
-		else
-		{
-			if (task->options_.priority > 0)
-			{
+		} else {
+			if (task->options_.priority > 0) {
 				runningPriority_ = 0;
 			}
 			++stats_.completed;
 		}
 	}
+
 
 
 	// ===== TasksQueueContainer ========================================================

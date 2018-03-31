@@ -22,12 +22,14 @@ namespace TasksLib {
 			, total(0)
 		{}
 
-		T added;			// accummulating
-		T completed;
-		T suspended;
-		T resumed;
-		T waiting;			// current (does not reset)
-		T total;
+		// accummulating between resets
+		T added;			// Tasks added
+		T completed;		// Tasks completed and out of queue
+		T suspended;		// Tasks scheduled for delayed execution
+		T resumed;			// Tasks resumed after delay
+		// current (does not reset)
+		T waiting;			// Tasks waiting in suspended state
+		T total;			// Total tasks in the queue
 	};
 
 	class TasksQueue {
@@ -77,25 +79,17 @@ namespace TasksLib {
 
 		bool AddTask(TaskPtr task);
 
-
-
-		
-
 		void Update();
 
 	private:
 		void CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads);
 		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask);
 		
-		
-		void RescheduleTask(std::shared_ptr<Task> task);
-
-		
-
 		void ThreadExecuteTasks(const bool ignoreBlocking);
 		void ThreadExecuteScheduledTasks();
 
-
+		void RescheduleTask(std::shared_ptr<Task> task);
+	
 	private:
 		std::atomic<bool> isInitialized_;
 		std::atomic<bool> isShutDown_;
