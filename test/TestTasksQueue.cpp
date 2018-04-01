@@ -99,15 +99,15 @@ namespace TasksLib {
 				}
 			)
 		);
-		CheckStats(1, -1, -1, -1, -1, 1, "Should add the task");
+		CheckStats(1, -1, -1, -1, -1, -1, "Should add the task");
 
 		auto now = std::chrono::steady_clock::now();
 		do {
 			std::this_thread::yield();
-		} while (!threadSet && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(100)));
+		} while (!threadSet && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(50)));
 
 		EXPECT_TRUE(threadSet);
-		CheckStats(1, 1, 0, 0, 0, 0, "Should run in a worker thread");
+		CheckStats(1, 1, -1, -1, -1, 0, "Should run in a worker thread");
 	}
 	TEST_F(TasksQueueTest, AddsTaskMainThread) {
 		InitQueue();
@@ -123,12 +123,12 @@ namespace TasksLib {
 				TaskThreadTarget::MAIN_THREAD
 			)
 		);
-		CheckStats(1, -1, -1, -1, -1, 1, "Should add the task");
+		CheckStats(1, -1, -1, -1, -1, -1, "Should add the task");
 
 		auto now = std::chrono::steady_clock::now();
 		do {
 			std::this_thread::yield();
-		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(200))));
+		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(100))));
 
 		EXPECT_FALSE(threadSet);
 		CheckStats(1, -1, -1, -1, -1, 1, "Shouldn't run in a worker thread");
@@ -136,10 +136,43 @@ namespace TasksLib {
 		now = std::chrono::steady_clock::now();
 		do {
 			queue.Update();
-		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(100))));
+		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(50))));
 
 		EXPECT_TRUE(threadSet);
-		CheckStats(1, 1, 0, 0, 0, 0, "Should run in the main thread");
+		CheckStats(1, 1, -1, -1, -1, 0, "Should run in the main thread");
 	}
+	TEST_F(TasksQueueTest, IgnoresBlockingProperly) {
+		InitQueue();
+		ASSERT_TRUE(queue.isInitialized());
 
+		bool threadSet = false;
+		for (int i = 0; i < 4; i++) {
+			queue.AddTask(
+				std::make_shared<Task>(
+					[](TasksQueue* queue, TaskPtr task) -> void {
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					},
+					TaskBlocking{ true }
+				)
+			);
+		}
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+					threadSet = true;
+				}
+			)
+		);
+		CheckStats(5, -1, -1, -1, -1, -1, "Should add 5 tasks");
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		EXPECT_TRUE(threadSet);
+		CheckStats(-1, 1, -1, -1, -1, 4, "Should have 1 task completed");
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		CheckStats(-1, 4, -1, -1, -1, 1, "Should have 4 tasks completed");
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		CheckStats(-1, 5, -1, -1, -1, 0, "Should have all tasks completed");
+	}
 }

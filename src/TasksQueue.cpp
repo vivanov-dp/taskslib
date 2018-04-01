@@ -76,7 +76,6 @@ namespace TasksLib {
 		}
 
 		CreateThreads(configuration.blockingThreads_, configuration.nonBlockingThreads_, configuration.schedulingThreads_);
-		numNonBlockingThreads_ = configuration.nonBlockingThreads_;
 		isInitialized_ = true;
 	}
 	void TasksQueue::ShutDown() {
@@ -159,16 +158,16 @@ namespace TasksLib {
 	}
 
 	void TasksQueue::CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads) {
-		uint32_t i;
-		for (i = 0; i < numBlockingThreads; ++i) {
-			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, true);
-			workerThreads_.push_back(thread);
-		}
-		for (i = 0; i < numNonBlockingThreads; ++i) {
+		for (unsigned i = 0; i < numBlockingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, false);
 			workerThreads_.push_back(thread);
 		}
-		for (i = 0; i < numSchedulingThreads; ++i) {
+		for (unsigned i = 0; i < numNonBlockingThreads; ++i) {
+			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, true);
+			workerThreads_.push_back(thread);
+		}
+		numNonBlockingThreads_ = numNonBlockingThreads;
+		for (unsigned i = 0; i < numSchedulingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this);
 			schedulingThreads_.push_back(thread);
 		}
@@ -226,17 +225,20 @@ namespace TasksLib {
 					break;
 				}
 
-				task = tasks_.front();
-				if (task) {
-					std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
-					if ((task->GetOptions().isBlocking && ignoreBlocking)
-						|| (task->GetOptions().priority < runningPriority_)
-						)
-					{
-						task = nullptr;
-					}
-					else {
-						tasks_.erase(tasks_.begin());
+				for (auto it = tasks_.begin(); it < tasks_.end(); ++it) {
+					task = *it;
+					if (task) {
+						std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
+						if ((task->GetOptions().isBlocking && ignoreBlocking)
+							|| (task->GetOptions().priority < runningPriority_)
+							)
+						{
+							task = nullptr;
+						}
+						else {
+							tasks_.erase(it);
+							break;
+						}
 					}
 				}
 			}

@@ -40,7 +40,7 @@ namespace TasksLib {
 	void Task::Execute(TasksQueue* queue, TaskPtr task) {
 		// Here *task == *this, but it is a shared_ptr supplied by the queue and holds a stake 
 		// at the point of creation of the task, which ensures that even if everything gets released,
-		// the task will still exists until it finishes
+		// the task will still exist until it finishes
 
 		{
 			std::unique_lock<std::mutex> lock(taskMutex_);
