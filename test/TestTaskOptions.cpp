@@ -25,7 +25,7 @@ namespace TasksLib {
 		EXPECT_FALSE(opt.isBlocking);
 		EXPECT_FALSE(opt.isMainThread);
 		EXPECT_EQ(opt.executable, nullptr);
-		EXPECT_EQ(opt.suspendTime, TaskMilliseconds{ 0 });
+		EXPECT_EQ(opt.suspendTime, TaskDelay{ 0 });
 	}
 	TEST_F(TaskOptionsTest, CreatesWithCopy) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
@@ -108,19 +108,19 @@ namespace TasksLib {
 		std::uniform_int_distribution<unsigned int> dist(1, INT_MAX);
 		auto seed = randDev();
 
-		opt.SetOptions(TaskMilliseconds{ 0 });
-		ASSERT_EQ(opt.suspendTime, TaskMilliseconds{ 0 });
+		opt.SetOptions(TaskDelay{ 0 });
+		ASSERT_EQ(opt.suspendTime, TaskDelay{ 0 });
 
-		TaskMilliseconds ms;
+		TaskDelay ms;
 		randEng.seed(seed);
 
-		ms = TaskMilliseconds{ dist(randEng) };
+		ms = TaskDelay{ dist(randEng) };
 		opt.SetOptions(ms);
 		EXPECT_EQ(opt.suspendTime, ms);
 
 		randEng.seed(seed);
-		opt.SetOptions(TaskMilliseconds{ 0 });
-		opt.SetOptions(TaskMilliseconds{ dist(randEng) });
+		opt.SetOptions(TaskDelay{ 0 });
+		opt.SetOptions(TaskDelay{ dist(randEng) });
 		EXPECT_EQ(opt.suspendTime, ms);
 	}
 	TEST_F(TaskOptionsTest, SetsMultipleOptions) {

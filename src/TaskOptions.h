@@ -23,7 +23,7 @@ namespace TasksLib {
 		bool				isBlocking;
 		bool				isMainThread;
 		TaskExecutable		executable;
-		TaskMilliseconds	suspendTime;
+		TaskDelay	suspendTime;
 
 	public:
 		template <typename T>
@@ -55,7 +55,7 @@ namespace TasksLib {
 		void SetOption_(const TaskThreadTarget& threadTarget);
 		void SetOption_(const TaskExecutable& executable);
 		void SetOption_(TaskExecutable&& executable);
-		void SetOption_(const TaskMilliseconds& ms);
+		void SetOption_(const TaskDelay& ms);
 	};
 
 	template <typename... Ts>

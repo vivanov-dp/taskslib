@@ -38,7 +38,7 @@ namespace TasksLib {
 	using TaskBlocking		= bool;
 	using TaskPriority		= uint32_t;
 	using TaskExecutable	= std::function<void(TasksQueue* queue, TaskPtr task)>;
-	using TaskMilliseconds	= std::chrono::milliseconds;
+	using TaskDelay			= std::chrono::milliseconds;
 	// </Types as options>
 
 	// === TasksQueue =====
