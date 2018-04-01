@@ -18,6 +18,7 @@ namespace TasksLib {
 
 		void InitQueue() {
 			queue.Initialize({ 3,2,1 });
+			ASSERT_TRUE(queue.isInitialized());
 		}
 		// Check queue.stats: -1 is skip, >=0 is EXPECT_EQ()
 		void CheckStats(int added = -1, int completed = -1, int suspended = -1, int resumed = -1, int waiting = -1, int total = -1, std::string helper = "") {
@@ -88,7 +89,6 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, AddsTaskWorkerThread) {
 		InitQueue();
-		ASSERT_TRUE(queue.isInitialized());
 
 		bool threadSet = false;
 
@@ -111,7 +111,6 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, AddsTaskMainThread) {
 		InitQueue();
-		ASSERT_TRUE(queue.isInitialized());
 
 		bool threadSet = false;
 
@@ -143,7 +142,6 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, IgnoresBlockingProperly) {
 		InitQueue();
-		ASSERT_TRUE(queue.isInitialized());
 
 		bool threadSet = false;
 		for (int i = 0; i < 4; i++) {
@@ -169,10 +167,40 @@ namespace TasksLib {
 		EXPECT_TRUE(threadSet);
 		CheckStats(-1, 1, -1, -1, -1, 4, "Should have 1 task completed");
 		
-		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		std::this_thread::sleep_for(std::chrono::milliseconds(70));
 		CheckStats(-1, 4, -1, -1, -1, 1, "Should have 4 tasks completed");
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		CheckStats(-1, 5, -1, -1, -1, 0, "Should have all tasks completed");
+	}
+	TEST_F(TasksQueueTest, ObservesPriority) {
+		InitQueue();
+
+		bool prioritySet = false;
+		bool threadSet = false;
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
+					std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					prioritySet = true;
+				},
+				TaskPriority{ 20 }
+			)
+		);
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+					threadSet = true;
+				}
+			)
+		);
+
+		CheckStats(2, -1, -1, -1, -1, 2, "Should have 2 tasks");
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		ASSERT_FALSE(threadSet);
+		EXPECT_FALSE(threadSet);
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		EXPECT_TRUE(threadSet);
 	}
 }
