@@ -59,7 +59,7 @@ namespace TasksLib {
 		stats.completed = reset ? stats_.completed.exchange(0) : stats_.completed.load();
 		stats.suspended = reset ? stats_.suspended.exchange(0) : stats_.suspended.load();
 		stats.resumed = reset ? stats_.resumed.exchange(0) : stats_.resumed.load();
-		stats.waiting = stats_.suspended.load();
+		stats.waiting = stats_.waiting.load();
 		stats.total = stats_.total.load();
 
 		return std::move(stats);
@@ -172,7 +172,7 @@ namespace TasksLib {
 			schedulingThreads_.push_back(thread);
 		}
 	}
-	bool TasksQueue::AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask) {
+	bool TasksQueue::AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask, const bool updateTotal) {
 		if (!task || isShutDown_) {
 			return false;
 		}
@@ -208,7 +208,9 @@ namespace TasksLib {
 			}
 		}
 
-		++stats_.total;
+		if (updateTotal) {
+			++stats_.total;
+		}
 		return true;
 	}
 
@@ -268,7 +270,7 @@ namespace TasksLib {
 				while ((it != scheduledTasks_.end()) && (it->first < now)) {
 					auto task = it->second;
 					std::unique_lock<std::mutex> lockTask(task->GetTaskMutex_());
-					task->options_.suspendTime = std::chrono::milliseconds(0);
+					task->options_.suspendTime = TaskDelay{ 0 };
 					runTasks.push_back(task);
 					it = scheduledTasks_.erase(it);
 				}
@@ -280,24 +282,25 @@ namespace TasksLib {
 				auto task = runTasks.back();
 				++stats_.resumed;
 				--stats_.waiting;
-				--stats_.total;		// AddTask will increase this back
-				AddTask(task);
+				
+				std::unique_lock<std::mutex> lock(task->GetTaskMutex_());
+				AddTask(task, std::move(lock), false);
+
 				runTasks.pop_back();
 			}
 		}
 	}
 	
 	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task) {
-		--stats_.total;		// AddTask will increase this back
-
 		std::unique_lock<std::mutex> lockTaskData(task->GetTaskMutex_());
 		if (task->doReschedule_) {
 			task->ApplyReschedule_();
-			AddTask(task, std::move(lockTaskData));
+			AddTask(task, std::move(lockTaskData), false);
 		} else {
 			if (task->options_.priority > 0) {
 				runningPriority_ = 0;
 			}
+			--stats_.total;
 			++stats_.completed;
 		}
 	}

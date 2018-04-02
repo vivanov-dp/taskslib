@@ -197,10 +197,36 @@ namespace TasksLib {
 
 		CheckStats(2, -1, -1, -1, -1, 2, "Should have 2 tasks");
 		std::this_thread::sleep_for(std::chrono::milliseconds(60));
-		ASSERT_FALSE(threadSet);
+		ASSERT_FALSE(prioritySet);
 		EXPECT_FALSE(threadSet);
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds(60));
 		EXPECT_TRUE(threadSet);
+	}
+	TEST_F(TasksQueueTest, SetsDelay) {
+		InitQueue();
+
+		bool threadSet = false;
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+					threadSet = true;
+				},
+				TaskDelay{ 100 }
+			)
+		);
+
+		CheckStats(1, 0, 1, 0, 1, 1, "Should have 1 task waiting");
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		queue.Update();
+		EXPECT_FALSE(threadSet);
+		CheckStats(1, 0, 1, 0, 1, 1, "Should still have 1 task waiting");
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+		queue.Update();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		EXPECT_TRUE(threadSet);
+		CheckStats(1, 1, 1, 1, 0, 0, "Should have completed 1 task");
 	}
 }

@@ -83,7 +83,7 @@ namespace TasksLib {
 
 	private:
 		void CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads);
-		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask);
+		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask, const bool updateTotal = true);
 		
 		void ThreadExecuteTasks(const bool ignoreBlocking);
 		void ThreadExecuteScheduledTasks();
