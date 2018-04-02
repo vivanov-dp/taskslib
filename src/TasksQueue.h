@@ -78,7 +78,10 @@ namespace TasksLib {
 		void ShutDown();
 
 		bool AddTask(TaskPtr task);
-
+		/* Handle queue updates
+		   You are supposed to call this periodically on your main thread. If Update() doesn't get called, tasks that are targeted on the main thread will
+		   never get executed, also tasks that are suspended will never wake.
+		 */
 		void Update();
 
 	private:
