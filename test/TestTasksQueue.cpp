@@ -229,4 +229,66 @@ namespace TasksLib {
 		EXPECT_TRUE(threadSet);
 		CheckStats(1, 1, 1, 1, 0, 0, "Should have completed 1 task");
 	}
+	TEST_F(TasksQueueTest, ReschedulesWorkerToMain) {
+		InitQueue();
+
+		bool threadSet1 = false;
+		bool threadSet2 = false;
+
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
+					if (!threadSet1) {
+						threadSet1 = true;
+						task->Reschedule(TaskThreadTarget{ MAIN_THREAD });
+					}
+					else {
+						threadSet2 = true;
+					}
+					
+				}
+			)
+		);
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
+		ASSERT_TRUE(threadSet1);
+
+		auto now = std::chrono::steady_clock::now();
+		do {
+			std::this_thread::yield();
+		} while (!threadSet2 && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(50)));
+		EXPECT_FALSE(threadSet2);
+		CheckStats(1, 0, -1, -1, -1, 1, "Should not run in a worker thread");
+
+		queue.Update();
+		EXPECT_TRUE(threadSet2);
+		CheckStats(1, 1, -1, -1, -1, 0, "Should finish the task in main thread");
+	}
+	TEST_F(TasksQueueTest, ReschedulesMainToWorker) {
+		InitQueue();
+
+		bool threadSet1 = false;
+		bool threadSet2 = false;
+
+		queue.AddTask(
+			std::make_shared<Task>(
+				[&threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
+					if (!threadSet1) {
+						threadSet1 = true;
+						task->Reschedule(TaskThreadTarget{ WORKER_THREAD });
+					} else {
+						threadSet2 = true;
+					}
+				},
+				TaskThreadTarget{ MAIN_THREAD }
+			)
+		);
+
+		queue.Update();
+		ASSERT_TRUE(threadSet1);
+
+		std::this_thread::sleep_for(std::chrono::milliseconds{ 30 });
+		EXPECT_TRUE(threadSet2);
+		CheckStats(1, 1, -1, -1, -1, 0, "Should finish the task in worker thread");
+	}
 }
