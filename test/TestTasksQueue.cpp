@@ -270,166 +270,121 @@ namespace TasksLib {
 		CheckStats(1, 1, 1, 1, 0, 0, "Should have completed 1 task");
 	}
 	TEST_F(TasksQueueTest, ReschedulesWorkerToMain) {
+		bool ready = false;
 		bool threadSet1 = false;
 		bool threadSet2 = false;
 
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
-					if (!threadSet1) {
-						threadSet1 = true;
-						task->Reschedule(TaskThreadTarget{ MAIN_THREAD });
-					}
-					else {
-						threadSet2 = true;
-					}
-					
+		auto task = std::make_shared<Task>(
+			[&ready, &threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
+				if (!ready) return;			// Try to minimize time spent in thread if the test is not ready
+				if (!threadSet1) {
+					threadSet1 = true;
+					task->Reschedule(TaskThreadTarget{ MAIN_THREAD });
 				}
-			)
+				else {
+					threadSet2 = true;
+				}
+					
+			}
 		);
+		queue.AddTask(task);
+		ASSERT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE);		// This might spuriously fail if the thread yields immediately after AddTask()
+		ready = true;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 		ASSERT_TRUE(threadSet1);
-
-		auto now = std::chrono::steady_clock::now();
-		do {
-			std::this_thread::yield();
-		} while (!threadSet2 && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(50)));
 		EXPECT_FALSE(threadSet2);
-		CheckStats(1, 0, -1, -1, -1, 1, "Should not run in a worker thread");
-
-		queue.Update();
-		EXPECT_TRUE(threadSet2);
-		CheckStats(1, 1, -1, -1, -1, 0, "Should finish the task in main thread");
+		EXPECT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE_MAIN_THREAD);
 	}
 	TEST_F(TasksQueueTest, ReschedulesMainToWorker) {
+		bool ready = true;
 		bool threadSet1 = false;
 		bool threadSet2 = false;
 
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
-					if (!threadSet1) {
-						threadSet1 = true;
-						task->Reschedule(TaskThreadTarget{ WORKER_THREAD });
-					} else {
-						threadSet2 = true;
-					}
-				},
-				TaskThreadTarget{ MAIN_THREAD }
-			)
+		auto task = std::make_shared<Task>(
+			[&ready, &threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
+				if (!ready) return;			// Try to minimize time spent in thread if the test is not ready
+				if (!threadSet1) {
+					threadSet1 = true;
+					task->Reschedule(TaskThreadTarget{ WORKER_THREAD });
+				} else {
+					threadSet2 = true;
+				}
+			},
+			TaskThreadTarget{ MAIN_THREAD }
 		);
+		queue.AddTask(task);
+		queue.Update();
+		ready = false;
+		ASSERT_TRUE(threadSet1);
+		EXPECT_FALSE(threadSet2);										// This might spuriously fail if the thread yields early
+		EXPECT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE);		// This might spuriously fail if the thread yields early
+	}
+	TEST_F(TasksQueueTest, ReschedulesToNewPriority) {
+		std::uniform_int_distribution<int> dist(600, 20000);
+		std::uniform_int_distribution<int> dist2(-500, 500);
+		int priority = dist(randEng);
+		int modifier = dist2(randEng);
+		bool threadSet = false;
+
+		auto task = std::make_shared<Task>(
+			[priority, modifier, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+				threadSet = true;
+				task->Reschedule(TaskPriority{ static_cast<uint32_t>( priority + modifier ) });
+			},
+			TaskPriority{ static_cast<uint32_t>( priority ) },
+			TaskThreadTarget{ MAIN_THREAD }
+		);
+
+		queue.AddTask(task);
+		ASSERT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE_MAIN_THREAD);
+		ASSERT_EQ(task->GetOptions().priority, priority);
 
 		queue.Update();
-		ASSERT_TRUE(threadSet1);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds{ 30 });
-		EXPECT_TRUE(threadSet2);
-		CheckStats(1, 1, -1, -1, -1, 0, "Should finish the task in worker thread");
+		ASSERT_TRUE(threadSet);
+		EXPECT_EQ(task->GetOptions().priority, priority + modifier);
 	}
-	TEST_F(TasksQueueTest, ReschedulesToLowerPriority) {
-		bool prioritySet = false;
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
-					std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
-					prioritySet = true;
-				},
-				TaskPriority{ 25 }
-			)
+	TEST_F(TasksQueueTest, ReschedulesToNewBlocking) {
+		std::uniform_int_distribution<unsigned> dist(0, 1);
+		bool threadSet = false;
+		bool blocking = static_cast<bool>(dist(randEng));
+
+		auto task = std::make_shared<Task>(
+			[blocking, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+				threadSet = true;
+				task->Reschedule(TaskBlocking{ !blocking });
+			},
+			TaskBlocking{ blocking },
+			TaskThreadTarget{ MAIN_THREAD }
 		);
 
-		bool threadSet1 = false;
-		bool threadSet2 = false;
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
-					if (!threadSet1) {
-						threadSet1 = true;
-						task->Reschedule(TaskPriority{ 10 });
-					} else {
-						threadSet2 = true;
-					}
-				},
-				TaskPriority{ 50 }
-			)
-		);
+		queue.AddTask(task);
+		ASSERT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE_MAIN_THREAD);
+		ASSERT_EQ(task->GetOptions().isBlocking, blocking);
 
-		CheckStats(2, 0, -1, -1, -1, 2, "Should have 2 tasks");
-		
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		EXPECT_TRUE(threadSet1);
-		EXPECT_FALSE(threadSet2);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(60));
-		CheckStats(2, 0, -1, -1, -1, 2, "Should have 2 tasks - step 2");
-		EXPECT_TRUE(threadSet1);
-		EXPECT_FALSE(threadSet2);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(60));
-		CheckStats(2, 2, -1, -1, -1, 0, "Should have completed 2 tasks");
-		EXPECT_TRUE(threadSet1);
-		EXPECT_TRUE(threadSet2);
+		queue.Update();
+		ASSERT_TRUE(threadSet);
+		EXPECT_EQ(task->GetOptions().isBlocking, !blocking);
 	}
-	TEST_F(TasksQueueTest, ReschedulesToHigherPriority) {
-		bool prioritySet1 = false;
-		bool prioritySet2 = false;
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&prioritySet1, &prioritySet2](TasksQueue* queue, TaskPtr task) -> void {
-					if (!prioritySet1) {
-						std::this_thread::sleep_for(std::chrono::milliseconds{ 30 });
-						prioritySet1 = true;
-						task->Reschedule(TaskPriority{ 50 });
-					} else {
-						std::this_thread::sleep_for(std::chrono::milliseconds{ 60 });
-						prioritySet2 = true;
-					}
-				},
-				TaskPriority{ 20 }
-			)
+	TEST_F(TasksQueueTest, ReschedulesWithDelay) {
+		std::uniform_int_distribution<int> dist(10000, 30000);
+		TaskDelay delay{ dist(randEng) };
+		bool threadSet = false;
+
+		auto task = std::make_shared<Task>(
+			[delay, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+				threadSet = true;
+				task->Reschedule( delay );
+			},
+			TaskThreadTarget{ MAIN_THREAD }
 		);
 
-		// Task 1 will hold 30ms at priority 20, then 60ms at priority 50
-		// Task 2 with priority 25 should complete immediately
-		// After a total of 50ms Task 3 with priority 25 should remain in queue until Task 1 finishes
+		queue.AddTask(task);
+		ASSERT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE_MAIN_THREAD);
 
-		bool threadSet1 = false;
-		bool threadSet2 = false;
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&threadSet1](TasksQueue* queue, TaskPtr task) -> void {
-					threadSet1 = true;
-				},
-				TaskPriority{ 25 }
-			)
-		);
-		CheckStats(2, 0, -1, -1, -1, 2, "Should have 2 tasks");
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		CheckStats(-1, 1, -1, -1, -1, 1, "Should have completed 1 task");
-		ASSERT_FALSE(prioritySet1);
-		EXPECT_TRUE(threadSet1);
-		EXPECT_FALSE(threadSet2);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(40));
-		queue.AddTask(
-			std::make_shared<Task>(
-				[&threadSet2](TasksQueue* queue, TaskPtr task) -> void {
-					threadSet2 = true;
-				},
-				TaskPriority{ 25 }
-			)
-		);
-		CheckStats(3, -1, -1, -1, -1, 2, "Should have 2 tasks - step 2");
-		ASSERT_TRUE(prioritySet1);
-		EXPECT_FALSE(threadSet2);
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-		EXPECT_FALSE(threadSet2);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(60));
-		CheckStats(-1, 3, -1, -1, -1, 0, "Should have completed 3 tasks");
-		ASSERT_TRUE(prioritySet2);
-		EXPECT_TRUE(threadSet2);
+		queue.Update();
+		ASSERT_TRUE(threadSet);
+		EXPECT_EQ(task->GetStatus(), TaskStatus::TASK_SUSPENDED);
+		EXPECT_EQ(task->GetOptions().suspendTime, delay);
 	}
 }

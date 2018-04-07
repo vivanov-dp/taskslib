@@ -191,17 +191,17 @@ namespace TasksLib {
 		} else {
 			if (!task->GetOptions().isMainThread) {
 				{
-					std::lock_guard<std::mutex> lockTask(tasksMutex_);
+					std::lock_guard<std::mutex> lock(tasksMutex_);
 					tasks_.push_back(task);
+					task->status_ = TaskStatus::TASK_IN_QUEUE;
 				}
 
 				tasksCondition_.notify_all();
 			} else {
-				std::lock_guard<std::mutex> lockResponse(mtTasksMutex_);
+				std::lock_guard<std::mutex> lock(mtTasksMutex_);
 				mtTasks_.push_back(task);
+				task->status_ = TaskStatus::TASK_IN_QUEUE_MAIN_THREAD;
 			}
-
-			task->status_ = TaskStatus::TASK_IN_QUEUE;
 
 			if (task->GetOptions().priority > runningPriority_) {
 				runningPriority_ = task->GetOptions().priority;
