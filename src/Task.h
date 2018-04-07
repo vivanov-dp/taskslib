@@ -49,7 +49,7 @@ namespace TasksLib {
 		void ResetReschedule_();
 
 		friend class TasksQueue;
-		friend class TaskTest;
+		friend class TaskTest;			// To enable tests to call ApplyReschedule_() & ResetReschedule_(), which are called by TasksQueue
 	};
 
 	template <typename... Ts>

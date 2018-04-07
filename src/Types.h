@@ -18,10 +18,11 @@ namespace TasksLib {
 	enum TaskStatus {
 		TASK_FINISHED = 0,
 
-		TASK_INIT = 1,			// Freshly created, not added to queue
-		TASK_SUSPENDED,			// Put on hold, will reschedule after a specified delay
-		TASK_IN_QUEUE,			// Waiting in a queue
-		TASK_WORKING,			// Executing
+		TASK_INIT = 1,				// Freshly created, not added to queue
+		TASK_SUSPENDED,				// Put on hold, will reschedule after a specified delay
+		TASK_IN_QUEUE,				// Waiting in a queue
+		TASK_IN_QUEUE_MAIN_THREAD,	// Waiting in a queue in main thread
+		TASK_WORKING,				// Executing
 	};
 
 	using TaskPtr		= std::shared_ptr<Task>;
