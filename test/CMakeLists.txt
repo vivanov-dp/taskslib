@@ -116,16 +116,21 @@ add_executable(TestResourcePool TestTools.h TestResourcePool.cpp)
 target_link_libraries(TestResourcePool TasksLib GMockMain)
 target_compile_features(TestResourcePool PUBLIC cxx_std_17)
 
-add_executable(TestTasksQueue TestTools.h TestTasksQueue.cpp)
-target_link_libraries(TestTasksQueue TasksLib GMockMain)
-target_compile_features(TestTasksQueue PUBLIC cxx_std_17)
-
 add_executable(TestTasksThread TestTools.h TestTasksThread.cpp)
 target_link_libraries(TestTasksThread TasksLib GMockMain)
 target_compile_features(TestTasksThread PUBLIC cxx_std_17)
 
+add_executable(TestTasksQueue TestTools.h TestTasksQueue.cpp)
+target_link_libraries(TestTasksQueue TasksLib GMockMain)
+target_compile_features(TestTasksQueue PUBLIC cxx_std_17)
+
+add_executable(TestTasksQueueContainer TestTools.h TestTasksQueueContainer.cpp)
+target_link_libraries(TestTasksQueueContainer TasksLib GMockMain)
+target_compile_features(TestTasksQueueContainer PUBLIC cxx_std_17)
+
 add_test(NAME TestTask COMMAND TestTask)
 add_test(NAME TestTaskOptions COMMAND TestTaskOptions)
 add_test(NAME TestResourcePool COMMAND TestResourcePool)
-add_test(NAME TestTasksQueue COMMAND TestTasksQueue)
 add_test(NAME TestTasksThread COMMAND TestTasksThread)
+add_test(NAME TestTasksQueue COMMAND TestTasksQueue)
+add_test(NAME TestTasksQueueContainer COMMAND TestTasksQueueContainer)
