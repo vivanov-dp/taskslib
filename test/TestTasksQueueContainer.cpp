@@ -14,12 +14,12 @@ namespace TasksLib {
 
 	using namespace ::testing;
 
-	class TasksQueueContainerTest : public TestWithRandom {
+	class TasksQueuesContainerTest : public TestWithRandom {
 	public:
 		TasksQueuesContainer queuesContainer;
 	};
 
-	TEST_F(TasksQueueContainerTest, CreatesQueues) {
+	TEST_F(TasksQueuesContainerTest, CreatesQueues) {
 		std::string queueName = GenerateRandomString(5, 8, randEng);
 
 		EXPECT_EQ(queuesContainer.GetQueue(queueName), nullptr);
@@ -32,7 +32,7 @@ namespace TasksLib {
 		EXPECT_EQ(queue->numNonBlockingThreads(), 2);
 		EXPECT_EQ(queue->numSchedulingThreads(), 1);
 	}
-	TEST_F(TasksQueueContainerTest, UpdatesQueues) {
+	TEST_F(TasksQueuesContainerTest, UpdatesQueues) {
 		std::uniform_int_distribution<unsigned> dist(5, 10);
 		unsigned num = dist(randEng);
 		std::vector<std::string> queueNames;
