@@ -297,28 +297,25 @@ namespace TasksLib {
 		EXPECT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE_MAIN_THREAD);
 	}
 	TEST_F(TasksQueueTest, ReschedulesMainToWorker) {
-		bool ready = true;
 		bool threadSet1 = false;
-		bool threadSet2 = false;
 
 		auto task = std::make_shared<Task>(
-			[&ready, &threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
-				if (!ready) return;			// Try to minimize time spent in thread if the test is not ready
+			[&threadSet1](TasksQueue* queue, TaskPtr task) -> void {
 				if (!threadSet1) {
 					threadSet1 = true;
 					task->Reschedule(TaskThreadTarget{ WORKER_THREAD });
 				} else {
-					threadSet2 = true;
+					std::this_thread::sleep_for(std::chrono::milliseconds(30));
+					task->Reschedule();
 				}
 			},
 			TaskThreadTarget{ MAIN_THREAD }
 		);
 		queue.AddTask(task);
 		queue.Update();
-		ready = false;
 		ASSERT_TRUE(threadSet1);
-		EXPECT_FALSE(threadSet2);										// This might spuriously fail if the thread yields early
-		EXPECT_EQ(task->GetStatus(), TaskStatus::TASK_IN_QUEUE);		// This might spuriously fail if the thread yields early
+		EXPECT_TRUE((task->GetStatus() == TaskStatus::TASK_IN_QUEUE) || (task->GetStatus() == TaskStatus::TASK_WORKING));
+		EXPECT_FALSE(task->GetOptions().isMainThread);
 	}
 	TEST_F(TasksQueueTest, ReschedulesToNewPriority) {
 		std::uniform_int_distribution<int> dist(600, 20000);

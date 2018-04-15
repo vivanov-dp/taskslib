@@ -30,6 +30,8 @@ namespace TasksLib {
 		*/
 		template <typename... Ts>
 		void Reschedule(Ts&& ...ts);
+		template <>
+		void Reschedule();
 
 	protected:
 		std::mutex& GetTaskMutex_();
@@ -63,6 +65,10 @@ namespace TasksLib {
 		std::lock_guard<std::mutex> lock(taskMutex_);
 
 		rescheduleOptions_.SetOptions(std::forward<Ts>(ts)...);
+		Reschedule();
+	}
+	template <>
+	void Task::Reschedule() {
 		doReschedule_ = true;
 	}
 
