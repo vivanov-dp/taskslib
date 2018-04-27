@@ -2,7 +2,9 @@
 
 *Note: We don't provide a dynamic library configuration for TasksLib at this time. If you require dynamic linking, you have to modify the build configurations and the source code accordingly*
 
-You can take a look at [test/CMakeLists.txt](../test/CMakeLists.txt) for an example of how to integrate the build into your own CMake based project using ExternalProject_Add() - we have done this with the googletest/googlemock framework. Otherwise, if you want to build the library stand-alone (and/or the tests for it), keep reading.
+You can take a look at [test/CMakeLists.txt](../test/CMakeLists.txt) for an example of how to integrate the build into your own CMake based project using ExternalProject_Add() - we have done this with the googletest/googlemock framework. You will probably want to build only the TasksLib project in this case, not use the ALL_BUILD. 
+
+If you want to build the library stand-alone (and/or the tests for it), keep reading:
 
 - Clone or download the repo, use the master branch. Use shallow copy (depth=1) if you only intend to use the library and not to participate in the development.
 
