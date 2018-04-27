@@ -31,7 +31,7 @@ namespace TasksLib {
 
 	template <class T> class ResourcePool;
 
-	// Types accepted as options for tasks (in Task::Task() and Task::SetOptions()) :
+	// Types accepted as options for tasks (in Task::Task() and Task::Reschedule()) :
 	enum TaskThreadTarget {
 		MAIN_THREAD,
 		WORKER_THREAD
