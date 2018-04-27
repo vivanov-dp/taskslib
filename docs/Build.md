@@ -2,6 +2,8 @@
 
 *Note: We don't provide a dynamic library configuration for TasksLib at this time. If you require dynamic linking, you have to modify the build configurations and the source code accordingly*
 
+You can take a look at [test/CMakeLists.txt](../test/CMakeLists.txt) for an example of how to integrate the build into your own CMake based project using ExternalProject_Add() - we have done this with the googletest/googlemock framework. Otherwise, if you want to build the library stand-alone (and/or the tests for it), keep reading.
+
 - Clone or download the repo, use the master branch. Use shallow copy (depth=1) if you only intend to use the library and not to participate in the development.
 
 - Run CMake. 
@@ -11,7 +13,7 @@ By convention we put the output of CMake in the build subdirectory, so you need 
   cd build
   cmake ..
   ```
-  Alternatively use the provided batch script for your platform (*currenly there is only the windows/visual studio 2017 one*). Generated project files will appear in the build subdirectory. Compile them according to your platform:
+  Alternatively use the provided batch script for your platform (*currenly there is only the windows/visual studio 2017 one*). Generated project files will appear in the build subdirectory. Compile them according to your platform.
 
 ## Windows - VisualStudio ##
 
