@@ -10,7 +10,7 @@ set(GMOCK_INCLUDES "${GTEST_PREFIX}/src/GTestExternal/googlemock/include")
 # external project download and build (no install for gtest)
 ExternalProject_Add(GTestExternal
 	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG master
+	GIT_TAG a6f06bf2fd3b832822cd4e9e554b7d47f32ec084
 	GIT_SHALLOW TRUE
 	GIT_PROGRESS TRUE
     PREFIX "${GTEST_PREFIX}"
