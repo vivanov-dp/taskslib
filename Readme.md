@@ -11,5 +11,5 @@ TasksLib was created as part of the development of a mobile game which is being 
 ## How To Use ##
 
 1. [Build Instructions](docs/Build.md)
-2. [Architecture](docs/Architecture.md)
-3. [API](docs/Api.md)
+2. [Architecture & Tutorial](docs/Architecture.md)
+3. [API Reference](docs/Api.md)
