@@ -28,6 +28,11 @@ namespace TasksLib {
 		, numNonBlockingThreads_(0)
 		, scheduleEarliest_(scheduleTimePoint::min())
 	{}
+	TasksQueue::TasksQueue(const Configuration& configuration)
+		: TasksQueue()
+	{
+		Initialize(configuration);
+	}
 	TasksQueue::~TasksQueue() {
 		ShutDown();
 	}

@@ -44,6 +44,7 @@ namespace TasksLib {
 		};
 
 		TasksQueue();
+		TasksQueue(const Configuration& configuration);
 		virtual ~TasksQueue();
 
 		const bool isInitialized() const;

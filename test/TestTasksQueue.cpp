@@ -60,6 +60,22 @@ namespace TasksLib {
 		EXPECT_EQ(checkQueue.numNonBlockingThreads(), 0);
 		EXPECT_EQ(checkQueue.numSchedulingThreads(), 0);
 	}
+	TEST_F(TasksQueueTest, CreatesWithConfig) {
+		std::uniform_int_distribution<unsigned> random(1, 15);
+		unsigned blocking = random(randEng);
+		unsigned nonBlocking = random(randEng);
+		unsigned scheduling = random(randEng);
+
+		TasksQueue checkQueue({ blocking, nonBlocking, scheduling });
+		
+		EXPECT_TRUE(checkQueue.isInitialized());
+		EXPECT_EQ(checkQueue.numWorkerThreads(), blocking + nonBlocking);
+		EXPECT_EQ(checkQueue.numBlockingThreads(), blocking);
+		EXPECT_EQ(checkQueue.numNonBlockingThreads(), nonBlocking);
+		EXPECT_EQ(checkQueue.numSchedulingThreads(), scheduling);
+
+		CheckStats(0, 0, 0, 0, 0, 0);
+	}
 	TEST_F(TasksQueueTest, Initializes) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
 		unsigned blocking = random(randEng);
