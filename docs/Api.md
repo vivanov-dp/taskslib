@@ -1,4 +1,4 @@
-# TasksLib API #
+# TasksLib API Reference #
 
 ## 1. Task ##
 
