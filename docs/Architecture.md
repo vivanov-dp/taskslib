@@ -2,7 +2,7 @@
 
 ## Threads Scheduling: The Queue ##
 
-The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use it we instantiate the queue first:
+The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use them we instantiate the queue first:
 
 ```
 #include "Task.h"
