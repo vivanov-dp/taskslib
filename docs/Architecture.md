@@ -27,7 +27,7 @@ queue.Initialize({5,1,1});
 
 In this case the queue is not going to create its threads and is not going to accept tasks before the Initialize method is called. There is also a `Shutdown()` method, which will destroy the threads and put the queue back into the uninitialized state.
 
-The job of the tasks queue is to maintain a list of executable pieces of code  - *tasks*, and run them whenever there are any free threads. If there are more tasks than threads, they will wait in the queue for their turn. The scheduler code groes trough the whole queue on each pass and it doesn't matter in which order the tasks are added to it.
+The job of the tasks queue is to maintain a list of executable pieces of code  - *tasks*, and run them whenever there are any free threads. If there are more tasks than threads, they will wait in the queue for their turn. The scheduler code goes trough the whole queue on each pass and it doesn't matter in which order the tasks are added to it.
 
 ### Configuring the Queue ###
 
