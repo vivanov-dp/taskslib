@@ -1,6 +1,9 @@
 # TasksLib Architecture & Tutorial #
 
-## Threads Scheduling: The Queue ##
+This is a short overview and explanation of the core concepts of the library and how to use them.
+
+
+## 1. Threads Scheduling: The Queue ##
 
 The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use them we instantiate the queue first:
 
@@ -36,10 +39,15 @@ The **TasksQueue** accepts a `TasksQueue::Configuration` struct in it's construc
 - **Blocking Threads**
   Standard worker threads, which handle everything. These are the bulk of our threads, we create as many as necessary to handle the load.
 - **Non-Blocking Threads**
-  There is an option in the **Task** object, that marks it as *blocking* - to specify that it's executable code may take a long time to finish - for example this can be a task that makes an http:// request to some URL and takes a second or two to return the data. We maintain a certain number of worker threads, called *NonBlocking threads* that ignore such tasks in order to always have threads available to do other jobs - this helps avoid a situation where all threads are blocked waiting for long lasting tasks and quicker tasks pile up in the queue. The number of these threads is usually set lower than the blocking threads, but this depends on the particular workload.
+  There is an option in the *Task* object, that marks it as *blocking* - to specify that it's executable code may take a long time to finish - for example this can be a task that makes an http:// request to some URL and takes a second or two to return the data, or it might be a path finding job that has to traverse a lot of terrain. We maintain a certain number of worker threads, called *NonBlocking threads* that ignore such tasks in order to always have threads available to do other jobs - this helps avoid a situation where all threads are blocked waiting for long lasting tasks and quicker tasks pile up in the queue. The number of these threads is usually set lower than the blocking threads, but this depends on the particular workload.
 - **Time Management Threads**
-  The **Task** allows to be scheduled with a delay - we can tell a task to wait for 5 seconds and then execute. When we do that, the task goes on a special queue for suspended tasks and the *Time Management threads* are responsible to move it out of there and onto the normal scheduling queue when the time comes. There is currently no reason to have more than one such thread, but the effectiveness of the code is the same with or without this option, so we implemented it anyway just for the sake of consistency.
+  The *Task* allows to be scheduled with a delay - we can tell a task to wait for 5 seconds and then execute. When we do that, the task goes on a special queue for suspended tasks and the *Time Management threads* are responsible to move it out of there and onto the normal scheduling queue when the time comes. There is currently no reason to have more than one such thread, but the effectiveness of the code is the same with or without this option, so we implemented it anyway just for the sake of consistency.
 - **The Main Thread**
-  The thread in which the queue instance is created, is considered the main thread. Usually this would be the thread where the main application loop is performed. **Tasks** have an option to execute either in a worker thread, or on the main thread and this can be used as a mechanism to transfer execution and data from one to the other. For example, the tasks can be used to outsource CPU-heavy execution to worker threads, so that the main loop is not delayed (and the frame rate is not dropped if it is a game), and when the work is done, the tasks are rescheduled on the main thread and can apply the results to the global objects, without requiring any locks on them.
+  The thread in which the core application loop is performed, is considered the *main thread*. *Tasks* have an option to execute either in a worker thread, or on the main thread and this can be used as a mechanism to transfer execution and data from one to the other. For example, the tasks can be used to outsource CPU-heavy execution to worker threads, so that the main loop is not delayed (and, if it's a video game - the frame rate is not dropped), and when the work is done, the tasks are rescheduled on the main thread and can call callbacks and apply results to the global objects, without requiring locks on them.
   
-  In order for this to work, the **TasksQueue** must regularly receive a call to its `Update()` method, performed on the main thread - we can simply call it from the main loop. The `Update()` will execute any tasks waiting to execute on the main thread, so we need to be cautious of what we put there, as it might slow down the whole application.
+  In order for this to work, the *TasksQueue* must regularly receive a call to its `Update()` method, performed on the main thread - it is designed to be simply called from the main loop. The `Update()` will execute any tasks waiting to execute on the main thread, so we need to be cautious of what we put there, as it might slow down the whole application.
+  
+  ***Note:*** *From the *queue's* point of view, the thread on which it receives the `Update()` call is considered the main thread, but technically it could be any other thread too.*
+
+
+## 2. Executable Code: Tasks ##
