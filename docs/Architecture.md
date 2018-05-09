@@ -8,7 +8,6 @@ This is a short overview and explanation of the core concepts of the library and
 The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use them we instantiate the queue first:
 
 ```
-#include "Task.h"
 #include "TasksQueue.h"
 
 TasksQueue queue({5,1,1});
@@ -17,7 +16,6 @@ TasksQueue queue({5,1,1});
 The above code will create a tasks queue with 5 regular threads, 1 non-blocking thread and 1 thread for time management. Alternatively we can split the creation and initialization phases like this:
 
 ```
-#include "Task.h"
 #include "TasksQueue.h"
 
 TasksQueue queue;
@@ -51,3 +49,27 @@ The **TasksQueue** accepts a `TasksQueue::Configuration` struct in it's construc
 
 
 ## 2. Executable Code: Tasks ##
+
+The code we execute using the library is wrapped in *Tasks*. We can use any kind of a callable - a function, a lambda, a bind to a class method - as long as it's signature looks like this: `void Callable(TasksQueue* queue, std::shared_ptr<Task> task)`. 
+
+The ***queue*** parameter points to the queue that executes the task, it's guaranteed only during the execution and it's not intended to be passed and stored in data structures outside that piece of code. 
+
+The ***task*** parameter on the other hand is a shared pointer to the task itself and can be freely passed around and stored. The queue maintains an internal reference to it at all times, until the execution completes - that happens when the executable code returns without calling `task->Reschedule()` beforehand. At that point the task instance will be destroyed, unless we stored a reference to the shared task pointer somewhere else.
+
+The executable code - we can call it simply a callback - is passed as a parameter to the construcotr of the *Task*. The task itself is then scheduled on the queue via it's `AddTask()` method. Here is an example:
+
+```
+#include <iostream>
+#include "Task.h"
+#include "TasksQueue.h"
+
+TasksQueue queue({5,1,1});
+auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
+  std::cout << "Hello World!";
+};
+
+Task task(lambda);
+queue->AddTask(task);
+```
+
+The code above will create a scheduler queue, then it will create a task that prints "Hello World!" and run it in one of the queue's worker threads. As soon as the text is printed to cout, the task will complete and it will be removed from the queue.
