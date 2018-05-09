@@ -19,11 +19,11 @@ namespace TasksLib {
 		template <typename... Ts>
 		explicit TaskOptions(Ts&& ...opts);
 
-		TaskPriority		priority;
-		bool				isBlocking;
-		bool				isMainThread;
-		TaskExecutable		executable;
-		TaskDelay	suspendTime;
+		TaskPriority	priority;
+		bool			isBlocking;
+		bool			isMainThread;
+		TaskExecutable	executable;
+		TaskDelay		suspendTime;
 
 	public:
 		template <typename T>
