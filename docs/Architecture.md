@@ -69,7 +69,40 @@ auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
 };
 
 TaskPtr task = std::make_shared<Task>(lambda);
-queue->AddTask(task);
+queue.AddTask(task);
 ```
 
 The code above will create a scheduler queue, then it will create a task that prints "Hello World!" and run it in one of the queue's worker threads. As soon as the text is printed to cout, the task will complete and it will be removed from the queue.
+
+### Rescheduling ###
+
+The *Task* has a public method `Reschedule()`, which if called during the task's execution will make it be placed back on the queue for another pass. Elaborating on the previous example:
+
+```
+#include <iostream>
+#include "Task.h"
+#include "TasksQueue.h"
+
+TasksQueue queue({5,1,1});
+auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
+  static std::string step = "Once!";
+
+  std::cout << "Hello World! " << step;
+		
+  if (step == "Once!") {
+    step = "Twice!";
+    task->Reschedule();
+  }
+};
+
+TaskPtr task = std::make_shared<Task>(lambda);
+queue.AddTask(task);
+```
+
+This task will output `"Hello World! Once!"`, then it will go on the queue, execute a second time, output `"Hello World! Twice!"` and then it will end.
+
+This functionality allows us to split tasks into steps and execute each step in sequence. As we will see in the next chapter, the `Reschedule()` method allows us to change the task's options between steps - things like executing it in a worker thread or on the main thread, delaying it for a specified time, or even changing the executable callback itself so that we can use separate lambdas for each step instead of creating a state machine within the function we call.
+
+The original use case that we solved with this, was sending an out-of-band HTTP request with CPR/CURL: We create the request's object and populate it with data in the first step, then we send the request on second step and we mark it as blocking, then on step 3 we decode the returned results and finally we switch to the main thread on step 4 and invoke a callback within the game's code, which will go over the results and update the game state as needed.
+
+### Task Options ###
