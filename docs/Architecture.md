@@ -7,7 +7,7 @@ This is a short overview and explanation of the core concepts of the library and
 
 The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use them we instantiate the queue first:
 
-```
+```c++
 #include "TasksQueue.h"
 
 TasksQueue queue({5,1,1});
@@ -15,7 +15,7 @@ TasksQueue queue({5,1,1});
 
 The above code will create a tasks queue with 5 regular threads, 1 non-blocking thread and 1 thread for time management. Alternatively we can split the creation and initialization phases like this:
 
-```
+```c++
 #include "TasksQueue.h"
 
 TasksQueue queue;
@@ -58,7 +58,7 @@ The ***task*** parameter on the other hand is a shared pointer to the task itsel
 
 The executable code - we can call it simply a callback - is passed as a parameter to the construcotr of the *Task*. The task itself is then scheduled on the queue via it's `AddTask()` method. Here is an example:
 
-```
+```c++
 #include <iostream>
 #include "Task.h"
 #include "TasksQueue.h"
@@ -78,7 +78,7 @@ The code above will create a scheduler queue, then it will create a task that pr
 
 The *Task* has a public method `Reschedule()`, which if called during the task's execution will make it be placed back on the queue for another pass. Elaborating on the previous example:
 
-```
+```c++
 #include <iostream>
 #include "Task.h"
 #include "TasksQueue.h"
@@ -127,12 +127,12 @@ Both the *Task*'s constructor and the `Reschedule()` method accept a varying num
 
 We can call with any number of these parameters and in any order. For example:
 
-```
+```c++
   #include "Task.h"
 
   using namespace TasksLib;
 ```
-```
+```c++
   TaskPtr task1 = std::make_shared<Task>(TaskThreadTarget::MAIN_THREAD, TaskPriority{ 12 }, TaskBlocking{ true });
   TaskPtr task2 = std::make_shared<Task>(true, 54, lambda1);
   TaskPtr task3 = std::make_shared<Task>(std::chrono::milliseconds{ 500 }, lambda1);
@@ -150,7 +150,7 @@ We can call with any number of these parameters and in any order. For example:
 
 **task5** - Execute lambda3. Worker thread, priority 0, non-blocking, no sleep.
 
-```
+```c++
   auto lambda1 = [](TasksQueue* queue, TaskPtr task)->void {
     // .. do something in worker thread
 
@@ -166,7 +166,7 @@ We can call with any number of these parameters and in any order. For example:
 
 **lambda1** - Runs once, then reschedules the task back on the queue, but puts it on sleep for 0.5 sec. When the sleep has passed runs second time and reschedules the task to run on the main thread with priority 150. Finishes on the third run.
 
-```
+```c++
   auto externalObjectPtr = std::make_shared<SomeExternalClass>();
   auto resultsPtr = std::make_shared<ResultsStruct>();
   auto lambda2 = [externalObjectPtr, resultsPtr](TasksQueue* queue, TaskPtr task)->void {
@@ -188,4 +188,3 @@ We can call with any number of these parameters and in any order. For example:
 **lambda2&3** - Lambda3 is executed first, it does some work, then reschedules the task on the main thread to run lambda2, which invokes a callback and exits.
 
 The most widely used case, at least in our code, is *task5*. We use lambda's capturing of local variables to store shared pointers to external objects.
-
