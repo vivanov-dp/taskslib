@@ -187,4 +187,4 @@ We can call with any number of these parameters and in any order. For example:
 
 **lambda2&3** - Lambda3 is executed first, it does some work, then reschedules the task on the main thread to run lambda2, which invokes a callback and exits.
 
-The most widely used case, at least in our code, is *task5*. We use lambda's capturing of local variables to store shared pointers to external objects.
+The most widely used case, at least in our code, is *task5* with *lambda2&3*. We use lambda's capturing of local variables to carry shared pointers to external objects.
