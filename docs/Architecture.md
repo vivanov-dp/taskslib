@@ -68,7 +68,7 @@ auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
   std::cout << "Hello World!";
 };
 
-Task task(lambda);
+TaskPtr task = std::make_shared<Task>(lambda);
 queue->AddTask(task);
 ```
 
