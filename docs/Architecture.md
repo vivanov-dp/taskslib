@@ -105,6 +105,87 @@ This functionality allows us to split tasks into steps and execute each step in 
 
 The original use case that we solved with this, was sending an out-of-band HTTP request with CPR/CURL: We create the request's object and populate it with data in the first step, then we send the request on second step and we mark it as blocking, then on step 3 we decode the returned results and finally we switch to the main thread on step 4 and invoke a callback within the game's code, which will go over the results and update the game state as needed. *(NOTE: For those of you who would like to try it, bear in mind that this requires a modification of CPR's code to split the execution of the request in two parts - creation of a Session object and actual execution of a pre-created Session. All this is a subject of another library we have, called HttpLib, which we might or might not find the time to also publish as OpenSource)*
 
+
 ### Task Options ###
 
-...
+Both the *Task*'s constructor and the `Reschedule()` method accept a varying number of parameters that specify task's options. The list of options and their types are found in the `Types.h` header.
+
+- **TaskThreadTarget**
+  *enum*, specifying whether the task should execute in main thread or worker thread. Default is *WORKER_THREAD*.
+  
+- **TaskBlocking**
+  *bool*, if true - the task execution is expected to block for a longer time, so non-blocking threads will ignore it. Default is *false*.
+
+- **TaskPriority**
+  *uint32_t*, specifies the priority of the task. Currently task prioritization is not well developed, but there is a basic functionality that will make the queue ignore all tasks with lower priorities until higher priority tasks are complete. Lowest priority is 0, highest is as much as unit32_t can hold. Default is *0*.
+
+- **TaskExecutable**
+  *std::function*, a pointer to a callable code - this sets the callback that the queue invokes when executing the task. Default is *nullptr*.
+
+- **TaskDelay**
+  *std::chrono::milliseconds*, specifies a sleep time that needs to pass before the task is considered for execution. Default is *0*.
+
+We can call with any number of these parameters and in any order. For example:
+
+```
+  #include "Task.h"
+
+  using namespace TasksLib;
+```
+```
+  TaskPtr task1 = std::make_shared<Task>(TaskThreadTarget::MAIN_THREAD, TaskPriority{ 12 }, TaskBlocking{ true });
+  TaskPtr task2 = std::make_shared<Task>(true, 54, lambda1);
+  TaskPtr task3 = std::make_shared<Task>(std::chrono::milliseconds{ 500 }, lambda1);
+  TaskPtr task4 = std::make_shared<Task>(TaskExecutable{ lambda1 }, TaskDelay{ 2500 });
+  TaskPtr task5 = std::make_shared<Task>(lambda3);
+```
+
+**task1** - Blocking, priority is 12, executes in main thread, but since there is no executable it will simply finish right away.
+
+**task2** - Blocking, priority 54, executes lambda1. *Notice that the parameters can be specified with or without their full type, but we prefer full type because it makes for self-documenting code*
+
+**task3** - Sleep 0.5 seconds, then execute lambda1. Worker thread, priority 0, non-blocking.
+
+**task4** - Sleep 2.5 seconds, then execute lambda1. Worker thread, priority 0, non-blocking.
+
+**task5** - Execute lambda3. Worker thread, priority 0, non-blocking, no sleep.
+
+```
+  auto lambda1 = [](TasksQueue* queue, TaskPtr task)->void {
+    // .. do something in worker thread
+
+    task->Reschedule(TaskDelay{ 500 }, [](TasksQueue* queue, TaskPtr task)->void {
+      // .. do something else in worker thread
+
+      task->Reschedule(TaskThreadTarget::MAIN_THREAD, TaskPriority{ 150 }, [](TasksQueue* queue, TaskPtr task)->void {
+        // .. do something to wrap it up in the main thread
+      });
+    });
+  };
+```
+
+**lambda1** - Runs once, then reschedules the task back on the queue, but puts it on sleep for 0.5 sec. When the sleep has passed runs second time and reschedules the task to run on the main thread with priority 150. Finishes on the third run.
+
+```
+  auto externalObjectPtr = std::make_shared<SomeExternalClass>();
+  auto resultsPtr = std::make_shared<ResultsStruct>();
+  auto lambda2 = [externalObjectPtr, resultsPtr](TasksQueue* queue, TaskPtr task)->void {
+    // .. set results or invoke callbacks in main thread and finish
+    externalObjectPtr->someCallbackMethod(resultsPtr);
+  };
+  auto lambda3 = [resultsPtr](TasksQueue* queue, TaskPtr task)->void {
+    
+    // .. do something in a worker thread, store results in resultsPtr, then reschedule the task on main thread
+    // to run lambda2
+    
+    resultsPtr->abc = results;
+    resultsPtr->xyz = results;
+    
+    task->Reschedule(lambda2);
+  };
+```
+
+**lambda2&3** - Lambda3 is executed first, it does some work, then reschedules the task on the main thread to run lambda2, which invokes a callback and exits.
+
+The most widely used case, at least in our code, is *task5*. We use lambda's capturing of local variables to store shared pointers to external objects.
+
