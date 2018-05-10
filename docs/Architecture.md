@@ -103,6 +103,8 @@ This task will output `"Hello World! Once!"`, then it will go on the queue, exec
 
 This functionality allows us to split tasks into steps and execute each step in sequence. As we will see in the next chapter, the `Reschedule()` method allows us to change the task's options between steps - things like executing it in a worker thread or on the main thread, delaying it for a specified time, or even changing the executable callback itself so that we can use separate lambdas for each step instead of creating a state machine within the function we call.
 
-The original use case that we solved with this, was sending an out-of-band HTTP request with CPR/CURL: We create the request's object and populate it with data in the first step, then we send the request on second step and we mark it as blocking, then on step 3 we decode the returned results and finally we switch to the main thread on step 4 and invoke a callback within the game's code, which will go over the results and update the game state as needed.
+The original use case that we solved with this, was sending an out-of-band HTTP request with CPR/CURL: We create the request's object and populate it with data in the first step, then we send the request on second step and we mark it as blocking, then on step 3 we decode the returned results and finally we switch to the main thread on step 4 and invoke a callback within the game's code, which will go over the results and update the game state as needed. *(NOTE: For those of you who would like to try it, bear in mind that this requires a modification of CPR's code to split the execution of the request in two parts - creation of a Session object and actual execution of a pre-created Session. All this is a subject of another library we have, called HttpLib, which we might or might not find the time to also publish as OpenSource)*
 
 ### Task Options ###
+
+...
