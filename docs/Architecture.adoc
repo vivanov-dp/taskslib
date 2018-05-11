@@ -53,6 +53,7 @@ The **TasksQueue** accepts a `TasksQueue::Configuration` struct in it's construc
   
   ***Note:*** *From the *queue's* point of view, the thread on which it receives the `Update()` call is considered the main thread, but technically it could be any other thread too.*
 
+[Back to top](#taskslib-architecture--tutorial)
 
 ## 2. Executable Code: Tasks ##
 
