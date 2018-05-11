@@ -2,14 +2,14 @@
 :toc-title:
 :toclevels: 9
 
-# TasksLib Architecture & Tutorial #
+# TasksLib Architecture & Tutorial
 
 This is a short overview and explanation of the core concepts of the library and how to use them.
 
 toc::[]
 
 
-## 1. Threads Scheduling: The Queue ##
+## 1. Threads Scheduling: The Queue
 
 The library consists of a scheduler class - **TasksQueue**, and an executable wrapper class - **Task**. To use them we instantiate the queue first:
 
@@ -53,7 +53,7 @@ The **TasksQueue** accepts a `TasksQueue::Configuration` struct in it's construc
   
   ***Note:*** *From the *queue's* point of view, the thread on which it receives the `Update()` call is considered the main thread, but technically it could be any other thread too.*
 
-[Back to top](#taskslib-architecture--tutorial)
+<<TasksLib Architecture & Tutorial,Back to top>>
 
 ## 2. Executable Code: Tasks ##
 
