@@ -2,6 +2,8 @@
 :toc-title:
 :toclevels: 9
 
+[[top]]
+
 # TasksLib Architecture & Tutorial
 
 This is a short overview and explanation of the core concepts of the library and how to use them.
@@ -53,7 +55,7 @@ The **TasksQueue** accepts a `TasksQueue::Configuration` struct in it's construc
   
   ***Note:*** *From the *queue's* point of view, the thread on which it receives the `Update()` call is considered the main thread, but technically it could be any other thread too.*
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
 
 ## 2. Executable Code: Tasks ##
 
@@ -81,7 +83,7 @@ queue.AddTask(task);
 
 The code above will create a scheduler queue, then it will create a task that prints "Hello World!" and run it in one of the queue's worker threads. As soon as the text is printed to cout, the task will complete and it will be removed from the queue.
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
 
 ### Rescheduling ###
 
@@ -114,7 +116,7 @@ This functionality allows us to split tasks into steps and execute each step in 
 
 The original use case that we solved with this, was sending an out-of-band HTTP request with CPR/CURL: We create the request's object and populate it with data in the first step, then we send the request on second step and we mark it as blocking, then on step 3 we decode the returned results and finally we switch to the main thread on step 4 and invoke a callback within the game's code, which will go over the results and update the game state as needed. *(NOTE: For those of you who would like to try it, bear in mind that this requires a modification of CPR's code to split the execution of the request in two parts - creation of a Session object and actual execution of a pre-created Session. All this is a subject of another library we have, called HttpLib, which we might or might not find the time to also publish as OpenSource)*
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
 
 ### Task Options ###
 
@@ -201,16 +203,16 @@ The most widely used case, at least in our code, is *task5* with *lambda2&3*. We
 
 ***This was everything you need to use the library. The remainder of this document deals with the extras.***
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
 
 ## Resource Pools ##
 
 ...
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
 
 ## TasksQueue Container ##
 
 ...
 
-<<taskslib-architecture--tutorial,Back to top>>
+<<top, Back to top>>
