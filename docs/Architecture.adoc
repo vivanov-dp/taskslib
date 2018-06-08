@@ -65,7 +65,7 @@ The *_queue_* parameter points to the queue that executes the task, it's guarant
 
 The *_task_* parameter on the other hand is a shared pointer to the task itself and can be freely passed around and stored. The queue maintains an internal reference to it at all times, until the execution completes - that happens when the executable code returns without calling `task->Reschedule()` beforehand. At that point the task instance will be destroyed, unless we stored a reference to the shared task pointer somewhere else.
 
-The executable code - we can call it simply a callback - is passed as a parameter to the construcotr of the *Task*. The task itself is then scheduled on the queue via it's `AddTask()` method. Here is an example:
+The executable code - we can call it simply a callback - is passed as a parameter to the constructor of the *Task*. The task itself is then scheduled on the queue via it's `AddTask()` method. Here is an example:
 
 ```c++
 #include <iostream>
@@ -87,7 +87,7 @@ The code above will create a scheduler queue, then it will create a task that pr
 
 ### Rescheduling
 
-The *Task* has a public method `Reschedule()`, which if called during the task's execution will make it be placed back on the queue for another pass. Elaborating on the previous example:
+The *Task* has a public method `Reschedule()`, which if called during the task's execution, will place it back on the queue for another pass. Elaborating on the previous example:
 
 ```c++
 #include <iostream>
