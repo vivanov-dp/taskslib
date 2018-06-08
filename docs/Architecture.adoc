@@ -87,7 +87,7 @@ The code above will create a scheduler queue, then it will create a task that pr
 
 ### Rescheduling
 
-The *Task* has a public method `Reschedule()`, which if called during the task's execution, will place it back on the queue for another pass. Elaborating on the previous example:
+The *Task* has a public method `Reschedule()`, which if called during the task's execution, will have it placed back on the queue after current callback's execution is finished, for another pass. Elaborating on the previous example:
 
 ```c++
 #include <iostream>
