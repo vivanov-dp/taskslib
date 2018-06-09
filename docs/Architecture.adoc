@@ -206,13 +206,41 @@ The most widely used case, at least in our code, is _task5_ with _lambda2&3_. We
 
 <<top, Back to top>>
 
-## Resource Pools ##
+## Resource Pool ##
 
-...
+`template<class T> ResourcePool` is defined in ResourcePool.h and serves as a shared pool of instances of a specific class. These could be connections to a db for example, or random generator instances that require pre-seeding and take time to create.
+
+The pool has two methods - Add() and Acquire() and they work with unique_ptr<T>. The workflow is to create the pool, add some instances, then acquire them when needed. The acquired pointer is going to automatically return back to the pool when it gets destroyed. If there aren't any free to use instances in the pool, the Acquire() method returns a nullptr and it is up to the user to either wait until it returns something else, or add a new instance and use it - there is a shortcut method AddAcquire() that does just that.
+
+```c++
+#include "ResourcePool.h"
+
+ResourcePool<ResourceClass> pool;
+
+for (int i=0; i<10; i++) {
+  pool.Add(std::make_unique<ResourceClass>(...));
+}
+
+....
+....
+
+void SomeFunction() {
+  auto resource = pool.Acquire();
+  
+  resource->DoSomething();
+  resource->DoSomethingElse();
+  
+  // just let it drop out of scope - the resource is returned to the pool
+}
+```
+
+It is easier to use the auto type for the resource when acquiring it from the pool, since the actual type is complicated - std::unique_ptr<T, TaskLib::ResourceDeleter<T>> - the ResourceDeleter being the quirk that returns the resource back to the pool.
+
+Naturally the ResourcePool is completely thread safe.
 
 <<top, Back to top>>
 
-## TasksQueue Container ##
+## TasksQueues Container ##
 
 ...
 
