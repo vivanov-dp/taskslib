@@ -210,7 +210,7 @@ The most widely used case, at least in our code, is _task5_ with _lambda2&3_. We
 
 `template<class T> ResourcePool` is defined in ResourcePool.h and serves as a shared pool of instances of a specific class. These could be connections to a db for example, or random generator instances that require pre-seeding and take time to create.
 
-The pool has two methods - Add() and Acquire() and they work with unique_ptr<T>. The workflow is to create the pool, add some instances, then acquire them when needed. The acquired pointer is going to automatically return back to the pool when it gets destroyed. If there aren't any free to use instances in the pool, the Acquire() method returns a nullptr and it is up to the user to either wait until it returns something else, or add a new instance and use it - there is a shortcut method AddAcquire() that does just that.
+The pool has two methods - `Add()` and `Acquire()` and they work with `unique_ptr<T>`. The workflow is to create the pool, add some instances, then acquire them when needed. The acquired pointer is going to automatically return back to the pool when it gets destroyed. If there aren't any free to use instances in the pool, the `Acquire()` method returns a nullptr and it is up to the user to either wait until it returns something else, or add a new instance and use it - there is a shortcut method `AddAcquire()` that does just that.
 
 ```c++
 #include "ResourcePool.h"
