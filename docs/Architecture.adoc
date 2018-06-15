@@ -234,9 +234,9 @@ void SomeFunction() {
 }
 ```
 
-It is easier to use the auto type for the resource when acquiring it from the pool, since the actual type is complicated - std::unique_ptr<T, TaskLib::ResourceDeleter<T>> - the ResourceDeleter being the quirk that returns the resource back to the pool.
+It is easier to use the auto type for the resource when acquiring it from the pool, since the actual type is complicated - `std::unique_ptr<T, TaskLib::ResourceDeleter<T>>` - the *ResourceDeleter* being the quirk that returns the resource back to the pool.
 
-Naturally the ResourcePool is completely thread safe.
+Naturally the *ResourcePool* is completely thread safe.
 
 <<top, Back to top>>
 
