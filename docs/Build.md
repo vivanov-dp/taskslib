@@ -8,7 +8,7 @@ If you want to build the library stand-alone (and/or the tests for it), keep rea
 
 - Make sure you have CMake version 3.10 or newer installed
 
-- Clone or download the repo, use the master branch. Use shallow copy (depth=1) if you only intend to use the library and not to participate in the development.
+- Clone or download the repo, feel free to use the master branch or any release. If using the master it is recommended to checkout a specific commit by it's ID, rather than to rely on the latest version, because backward incompatible changes may be introduced at any time. Use shallow copy (depth=1) if you only intend to use the library and not to participate in the development.
 
 - Run CMake. 
 By convention we put the output of CMake in the build subdirectory, so you need to
