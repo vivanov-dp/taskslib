@@ -242,6 +242,28 @@ Naturally the *ResourcePool* is completely thread safe.
 
 ## TasksQueues Container ##
 
-...
+If you need to use more than one *TasksQueue*, you can store them into a *TasksQueuesContainer* instance. It has a simple `std::unordered_map<std::string, TasksQueue>` and a few convenience methods - `CreateQueue()`, `GetQueue()` and an `Update()` which will pass the update call to all contained queue's `Update()` methods.
+
+```
+  #include "TasksQueuesContainer.h"
+
+  TasksQueuesContainer queuesContainer;
+  
+  queuesContainer.CreateQueue("httpRequests", {5, 1, 1});
+  queuesContainer.CreateQueue("general", {15, 5, 1});
+  queuesContainer.CreateQueue("pathFinding", {8, 2, 0});
+  
+  ...
+  
+  TasksQueue* generalQueue = queuesContainer.GetQueue("general");
+  
+  generalQueue->AddTask(.....);
+  
+  ...
+```
+
+The above code would create a *TasksQueuesContainer*, then create and initialize 3 named *TasksQueue* 's - **httpRequests**, **general** and **pathFinding**, pointers to which can be retrieved with the `GetQueue()` method.
+
+Do not forget to call `Update()` on the *TasksQueuesContainer* or directly on the queues it contains, in the main loop.
 
 <<top, Back to top>>
