@@ -15,7 +15,7 @@ By convention we put the output of CMake in the build subdirectory, so you need 
   cd build
   cmake ..
   ```
-  Alternatively use the provided batch script for your platform (*currenly there is only the windows/visual studio 2017 one*). Generated project files will appear in the build subdirectory. Compile them according to your platform.
+  Alternatively use the provided batch script for your platform. Generated project files will appear in the build subdirectory. Compile them according to your platform.
 
 ## Windows - VisualStudio ##
 
@@ -31,3 +31,19 @@ By convention we put the output of CMake in the build subdirectory, so you need 
 - Run the tests using VisualStudio's test explorer: `Test->Windows->Test Explorer`, `Run All`. 
 - Alternativelly build the **RUN_TESTS** project - it is going to run the test suite at the end of it's build steps.
 - After the tests are built, you can also run them from `build/bin/Debug/Test*.exe` or `build/bin/Release/Test*.exe`
+
+## Linux - GCC ##
+
+### TaskLib library ###
+
+- cd build
+- make TasksLib - The compiled librabry is in `build/bin/`
+
+### Tests suite ###
+
+- cd build
+- make GTestExternal
+- make
+- make RUN_TESTS
+
+you can also run the tests separately from `build/bin/test*`
