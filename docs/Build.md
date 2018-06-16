@@ -6,6 +6,8 @@ You can take a look at [test/CMakeLists.txt](../test/CMakeLists.txt) for an exam
 
 If you want to build the library stand-alone (and/or the tests for it), keep reading:
 
+- Make sure you have CMake version 3.10 or newer installed
+
 - Clone or download the repo, use the master branch. Use shallow copy (depth=1) if you only intend to use the library and not to participate in the development.
 
 - Run CMake. 
