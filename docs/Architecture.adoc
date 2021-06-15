@@ -194,7 +194,7 @@ We can call with any number of these parameters and in any order. For example:
     resultsPtr->abc = results;
     resultsPtr->xyz = results;
     
-    task->Reschedule(lambda2);
+    task->Reschedule(lambda2, TaskThreadTarget::MAIN_THREAD);
   };
 ```
 
