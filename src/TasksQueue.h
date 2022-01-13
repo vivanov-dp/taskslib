@@ -6,13 +6,13 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
 
 #include "Types.h"
 
 namespace TasksLib {
 
-	template<typename T>
-	struct TasksQueuePerformanceStats {
+	template<typename T> struct TasksQueuePerformanceStats {
 		TasksQueuePerformanceStats()
 			: added(0)
 			, completed(0)
@@ -22,7 +22,7 @@ namespace TasksLib {
 			, total(0)
 		{}
 
-		// accummulating between resets
+		// accumulating between resets
 		T added;			// Tasks added
 		T completed;		// Tasks completed and out of queue
 		T suspended;		// Tasks scheduled for delayed execution
@@ -33,41 +33,68 @@ namespace TasksLib {
 	};
 
 	class TasksQueue {
+    private:
+        std::atomic<bool> _isInitialized;
+        std::atomic<bool> _isShuttingDown;
+        std::atomic<uint32_t> _runningPriority;
+
+        uint16_t _numNonBlockingThreads;
+        TasksQueuePerformanceStats<std::atomic<std::int32_t>> _stats;
+
+        // Mutexes lock order is - (Task->dataMutex), initMutex, schedulerMutex, tasksMutex, mtTasksMutex
+        std::mutex _initMutex;				// To ensure that calling Initialize() and/or Shutdown() from many threads at the same time is going to work
+        std::vector<std::shared_ptr<TasksThread>> _workerThreads;
+
+        std::mutex _schedulerMutex;
+        std::condition_variable _scheduleCondition;
+        std::vector<std::shared_ptr<TasksThread>> _schedulingThreads;
+        scheduleMap _scheduledTasks;
+
+        // The earliest point in time when the scheduling thread has something to do -> the time of the first delayed task
+        std::atomic<scheduleTimePoint> _scheduleEarliest;
+
+        std::mutex _tasksMutex;
+        std::condition_variable _tasksCondition;
+        std::vector<TaskPtr> _tasks;
+
+        std::mutex _mtTasksMutex;
+        std::vector<TaskPtr> _mtTasks;
+
 	public:
 		struct Configuration {
 			Configuration();
-			Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads = 0, unsigned numSchedulingThreads = 0);
+			explicit Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads = 0, uint16_t numSchedulingThreads = 0);
 
-			unsigned blockingThreads_;
-			unsigned nonBlockingThreads_;
-			unsigned schedulingThreads_;
+            uint16_t blockingThreads;
+            uint16_t nonBlockingThreads;
+            uint16_t schedulingThreads;
 		};
 
 		TasksQueue();
-		TasksQueue(const Configuration& configuration);
+		explicit TasksQueue(const Configuration& configuration);
 		virtual ~TasksQueue();
 
-		const bool isInitialized() const;
-		const bool isShutDown() const;
+		[[nodiscard]] bool isInitialized() const;
+        [[maybe_unused]] [[nodiscard]] bool isShutDown() const;
 
-		const unsigned numWorkerThreads() const;
-		const unsigned numBlockingThreads() const;
-		const unsigned numNonBlockingThreads() const;
-		const unsigned numSchedulingThreads() const;
+        [[maybe_unused]] [[nodiscard]] uint16_t numWorkerThreads() const;
+        [[maybe_unused]] [[nodiscard]] uint16_t numBlockingThreads() const;
+        [[maybe_unused]] [[nodiscard]] uint16_t numNonBlockingThreads() const;
+        [[maybe_unused]] [[nodiscard]] uint16_t numSchedulingThreads() const;
 
-		TasksQueuePerformanceStats<std::int32_t> GetPerformanceStats(const bool reset = false);
+		TasksQueuePerformanceStats<std::uint32_t> GetPerformanceStats(bool reset = false);
 
 		/* Initialize the threads queue with the specified number of threads 
 		   @param configuration
 		     
-			 struct Configuration {
-		       Configuration();
-		       Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads = 0, unsigned numSchedulingThreads = 0);
+                struct Configuration {
+                    Configuration();
+                    Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads = 0, uint16_t numSchedulingThreads = 0);
 
-		       unsigned blockingThreads_;
-		       unsigned nonBlockingThreads_;
-		       unsigned schedulingThreads_;
-		     };
+                    uint16_t blockingThreads;
+                    uint16_t nonBlockingThreads;
+                    uint16_t schedulingThreads;
+                };
 		   
 		   numBlockingThreads should be at least 1.
 		   numSchedulingThreads = 0 will disable the ability to put tasks on delay.
@@ -76,9 +103,9 @@ namespace TasksLib {
 		   The TasksQueue will not initialize if the number of blocking threads requested is 0.
 		*/
 		void Initialize(const Configuration& configuration);
-		void ShutDown();
+		void Cleanup();
 
-		bool AddTask(TaskPtr task);
+        [[maybe_unused]] bool AddTask(const TaskPtr& task);
 		/* Handle queue updates
 		   You are supposed to call this periodically on your main thread. If Update() doesn't get called, tasks that are targeted on the main thread will
 		   never get executed, also tasks that are suspended will never wake.
@@ -86,40 +113,13 @@ namespace TasksLib {
 		void Update();
 
 	private:
-		void CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads);
-		bool AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask, const bool updateTotal = true);
+		void CreateThreads(const Configuration& configuration);
+		bool AddTask(const TaskPtr& task, std::unique_lock<std::mutex> lockTask, bool updateTotal = true);
 		
-		void ThreadExecuteTasks(const bool ignoreBlocking);
+		void ThreadExecuteTasks(bool ignoreBlocking);
 		void ThreadExecuteScheduledTasks();
 
-		void RescheduleTask(std::shared_ptr<Task> task);
-	
-	private:
-		std::atomic<bool> isInitialized_;
-		std::atomic<bool> isShutDown_;
-		std::atomic<unsigned int> runningPriority_;
-		
-		unsigned numNonBlockingThreads_;
-		TasksQueuePerformanceStats<std::atomic<std::int32_t>> stats_;
-
-		// Mutexes lock order is - (Task->dataMutex), initMutex, schedulerMutex, tasksMutex, mtTasksMutex
-
-		std::mutex initMutex_;				// To ensure that calling Initialize() and/or Shutdown() from many threads at the same time is going to work
-		std::vector<std::shared_ptr<TasksThread>> workerThreads_;
-
-		std::mutex schedulerMutex_;
-		std::condition_variable scheduleCondition_;
-		std::vector<std::shared_ptr<TasksThread>> schedulingThreads_;
-		scheduleMap scheduledTasks_;
-
-		std::atomic<scheduleTimePoint> scheduleEarliest_;
-
-		std::mutex tasksMutex_;
-		std::condition_variable tasksCondition_;
-		std::vector<TaskPtr> tasks_;
-
-		std::mutex mtTasksMutex_;
-		std::vector<TaskPtr> mtTasks_;
-	};
+		void RescheduleTask(const std::shared_ptr<Task>& task);
+    };
 
 }

@@ -13,11 +13,9 @@ namespace TasksLib {
 		virtual ~TasksQueuesContainer();
 
 		TasksQueue* GetQueue(const std::string& queueName);
-		void CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration);
-
-		const size_t GetQueuesCount() const;
-
-		void Update();
+        [[maybe_unused]] void CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration);
+        [[maybe_unused]] size_t GetQueuesCount() const;
+        [[maybe_unused]] void Update();
 
 	private:
 		std::unordered_map<std::string, TasksQueue> queueMap_;

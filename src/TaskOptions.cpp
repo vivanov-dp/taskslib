@@ -2,7 +2,7 @@
 
 namespace TasksLib {
 
-	TaskOptions::TaskOptions() 
+	TaskOptions::TaskOptions() noexcept
 		: priority(0)
 		, isBlocking(false)
 		, isMainThread(false)
@@ -10,27 +10,30 @@ namespace TasksLib {
 		, suspendTime(0)
 	{
 	}
-	TaskOptions::TaskOptions(const TaskOptions& other) {
-		operator=(other);
-	}
-	TaskOptions::TaskOptions(TaskOptions&& other) {
+	TaskOptions::TaskOptions(const TaskOptions& other) noexcept = default;
+	TaskOptions::TaskOptions(TaskOptions&& other) noexcept
+        : TaskOptions()
+    {
 		operator=(std::move(other));
 	}
+    template <typename... Ts> TaskOptions::TaskOptions(Ts&& ...opts)
+            : TaskOptions()
+    {
+        SetOptions(std::forward<Ts>(opts)...);
+    }
 
-	TaskOptions& TaskOptions::operator=(const TaskOptions& other) {
-		// Don't check for equality because the check would take as much time as the assignment
+    template <typename T> void TaskOptions::SetOptions(T&& opt)
+    {
+        SetOption_(std::forward<T>(opt));
+    }
+    template <typename T, typename... Ts> [[maybe_unused]] void TaskOptions::SetOptions(T&& opt, Ts&& ... opts)
+    {
+        SetOptions(std::forward<T>(opt));
+        SetOptions(std::forward<Ts>(opts)...);
+    }
 
-		priority		= other.priority;
-		isBlocking		= other.isBlocking;
-		isMainThread	= other.isMainThread;
-		executable		= other.executable;
-		suspendTime		= other.suspendTime;
-
-		return *this;
-	}
-	TaskOptions& TaskOptions::operator=(TaskOptions&& other) {
-		// Don't check for equality because the check would take as much time as the assignment
-
+	TaskOptions& TaskOptions::operator=(const TaskOptions& other) = default;
+	TaskOptions& TaskOptions::operator=(TaskOptions&& other) noexcept {
 		priority		= other.priority;
 		isBlocking		= other.isBlocking;
 		isMainThread	= other.isMainThread;
@@ -40,7 +43,7 @@ namespace TasksLib {
 		return *this;
 	}
 
-	const bool TaskOptions::operator==(const TaskOptions& other) const {
+	bool TaskOptions::operator==(const TaskOptions& other) const {
 		return (
 			(priority == other.priority)
 			&& (isBlocking == other.isBlocking)
@@ -48,34 +51,35 @@ namespace TasksLib {
 			&& ((bool)executable == (bool)other.executable)
 			&& (executable.target_type() == other.executable.target_type())
 			&& (suspendTime == other.suspendTime)
-			);
+        );
 	}
-	const bool TaskOptions::operator!=(const TaskOptions& other) const {
+	bool TaskOptions::operator!=(const TaskOptions& other) const {
 		return !(operator==(other));
 	}
 
 	void TaskOptions::SetOption_(const TaskOptions& other) {
 		operator=(other);
 	}
-	void TaskOptions::SetOption_(const TaskOptions&& other) {
+
+    [[maybe_unused]] void TaskOptions::SetOption_(TaskOptions&& other) {
 		operator=(std::move(other));
 	}
-	void TaskOptions::SetOption_(const TaskPriority& _priority) {
+    [[maybe_unused]] void TaskOptions::SetOption_(const TaskPriority& _priority) {
 		priority = _priority;
 	}
-	void TaskOptions::SetOption_(const TaskBlocking& _isBlocking) {
+    [[maybe_unused]] void TaskOptions::SetOption_(const TaskBlocking& _isBlocking) {
 		isBlocking = _isBlocking;
 	}
-	void TaskOptions::SetOption_(const TaskThreadTarget& _threadTarget) {
+    [[maybe_unused]] void TaskOptions::SetOption_(const TaskThreadTarget& _threadTarget) {
 		isMainThread = (_threadTarget == MAIN_THREAD);
 	}
-	void TaskOptions::SetOption_(const TaskExecutable& _executable) {
+    [[maybe_unused]] void TaskOptions::SetOption_(const TaskExecutable& _executable) {
 		executable = _executable;
 	}
-	void TaskOptions::SetOption_(TaskExecutable&& _executable) {
+    [[maybe_unused]] void TaskOptions::SetOption_(TaskExecutable&& _executable) {
 		executable = std::move(_executable);
 	}
-	void TaskOptions::SetOption_(const TaskDelay& _ms) {
+    [[maybe_unused]] void TaskOptions::SetOption_(const TaskDelay& _ms) {
 		suspendTime = _ms;
 	}
 

@@ -2,40 +2,50 @@
 #include <memory>
 #include <string>
 #include <chrono>
+#include <utility>
 
 #include "Task.h"
 
 namespace TasksLib {
 
 	Task::Task() 
-		: status_(TASK_INIT)
-		, doReschedule_(false)
+		: _status(TASK_INIT)
+		, _doReschedule(false)
 	{}
-	Task::~Task() {}
+    template <typename... Ts> Task::Task(Ts&& ...ts)
+        : Task()
+    {
+        _options.SetOptions(std::forward<Ts>(ts)...);
+    }
+	Task::~Task() = default;
 
-	const TaskStatus Task::GetStatus() const {
-		return status_;
+    [[maybe_unused]] TaskStatus Task::GetStatus() const {
+		return _status;
 	}
 	TaskOptions const& Task::GetOptions() const {
-		return options_;
+		return _options;
 	}
 	TaskOptions const& Task::GetRescheduleOptions() const {
-		return rescheduleOptions_;
+		return _rescheduleOptions;
 	}
-	const bool Task::WillReschedule() const {
-		return doReschedule_;
+    [[maybe_unused]] bool Task::WillReschedule() const {
+		return _doReschedule;
 	}
+
+    template <typename... Ts>
+    void Task::Reschedule(Ts&& ... ts) {
+        std::lock_guard<std::mutex> lock(_taskMutex);
+
+        _rescheduleOptions.SetOptions(std::forward<Ts>(ts)...);
+        Reschedule();
+    }
+    template <> void Task::Reschedule() {
+        _doReschedule = true;
+    }
+
 
 	std::mutex& Task::GetTaskMutex_() {
-		return taskMutex_;
-	}
-
-	/* This is called by the queue to reset the reschedule options before running the task */
-	void Task::ResetReschedule_(std::unique_lock<std::mutex> lock) {
-		ResetReschedule_();
-	}
-	void Task::ApplyReschedule_(std::unique_lock<std::mutex> lock) {
-		ApplyReschedule_();
+		return _taskMutex;
 	}
 	void Task::Execute(TasksQueue* queue, TaskPtr task) {
 		// Here *task == *this, but it is a shared_ptr supplied by the queue and holds a stake 
@@ -43,28 +53,30 @@ namespace TasksLib {
 		// the task will still exist until it finishes
 
 		{
-			std::unique_lock<std::mutex> lock(taskMutex_);
-			if (options_.executable) {
-				status_ = TASK_WORKING;
-				ResetReschedule_(std::move(lock));			// This releases the lock
-				options_.executable(queue, task);
+			std::unique_lock<std::mutex> lock(_taskMutex);
+			if (_options.executable) {
+                _status = TASK_WORKING;
+				ResetReschedule_();
+                // Unlock the task while executing
+                lock.release();
+				_options.executable(queue, std::move(task));
 			}
 		}
 
 		{
-			std::lock_guard<std::mutex> lock(taskMutex_);
-			if (!doReschedule_) {
-				status_ = TASK_FINISHED;
+			std::lock_guard<std::mutex> lock(_taskMutex);
+			if (!_doReschedule) {
+                _status = TASK_FINISHED;
 			}
 		}
 	}
 	
 	void Task::ResetReschedule_() {
-		doReschedule_ = false;
-		rescheduleOptions_ = options_;
+        _doReschedule = false;
+        _rescheduleOptions = _options;
 	}
 	/* This is called by the queue to copy the reschedule options to the task, locking handled from outside */
 	void Task::ApplyReschedule_() {
-		options_ = rescheduleOptions_;
+        _options = _rescheduleOptions;
 	}
 }

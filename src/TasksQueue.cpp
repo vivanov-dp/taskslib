@@ -15,18 +15,18 @@ namespace TasksLib {
 	// ===== TasksQueue::Configuration ==================================================
 	TasksQueue::Configuration::Configuration()
 		: Configuration(DEFAULT_TQUEUE_BLOCKING, DEFAULT_TQUEUE_NONBLOCKING, DEFAULT_TQUEUE_SCHEDULING) {}
-	TasksQueue::Configuration::Configuration(unsigned numBlockingThreads, unsigned numNonBlockingThreads, unsigned numSchedulingThreads)
-		: blockingThreads_(numBlockingThreads)
-		, nonBlockingThreads_(numNonBlockingThreads)
-		, schedulingThreads_(numSchedulingThreads) {}
+	TasksQueue::Configuration::Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads, uint16_t numSchedulingThreads)
+		: blockingThreads(numBlockingThreads)
+		, nonBlockingThreads(numNonBlockingThreads)
+		, schedulingThreads(numSchedulingThreads) {}
 
 	// ===== TasksQueue =================================================================
 	TasksQueue::TasksQueue()
-		: isInitialized_(false)
-		, isShutDown_(false)
-		, runningPriority_(0)
-		, numNonBlockingThreads_(0)
-		, scheduleEarliest_(scheduleTimePoint::min())
+		: _isInitialized(false)
+		, _isShuttingDown(false)
+		, _runningPriority(0)
+		, _numNonBlockingThreads(0)
+		, _scheduleEarliest(scheduleTimePoint::min())
 	{}
 	TasksQueue::TasksQueue(const Configuration& configuration)
 		: TasksQueue()
@@ -34,110 +34,118 @@ namespace TasksLib {
 		Initialize(configuration);
 	}
 	TasksQueue::~TasksQueue() {
-		ShutDown();
+        Cleanup();
 	}
 
-	const bool TasksQueue::isInitialized() const {
-		return isInitialized_;
+	bool TasksQueue::isInitialized() const {
+		return _isInitialized;
 	}
-	const bool TasksQueue::isShutDown() const {
-		return isShutDown_;
-	}
-
-	const unsigned TasksQueue::numWorkerThreads() const {
-		return static_cast<unsigned>(workerThreads_.size());
-	}
-	const unsigned TasksQueue::numBlockingThreads() const {
-		return static_cast<unsigned>(workerThreads_.size()) - numNonBlockingThreads_;
-	}
-	const unsigned TasksQueue::numNonBlockingThreads() const {
-		return numNonBlockingThreads_;
-	}
-	const unsigned TasksQueue::numSchedulingThreads() const {
-		return static_cast<unsigned>(schedulingThreads_.size());
+    [[maybe_unused]] bool TasksQueue::isShutDown() const {
+		return _isShuttingDown;
 	}
 
-	TasksQueuePerformanceStats<std::int32_t> TasksQueue::GetPerformanceStats(const bool reset) {
-		TasksQueuePerformanceStats<std::int32_t> stats;
+    [[maybe_unused]] uint16_t TasksQueue::numWorkerThreads() const {
+		return static_cast<uint16_t>(_workerThreads.size());
+	}
+    [[maybe_unused]] uint16_t TasksQueue::numBlockingThreads() const {
+		return static_cast<uint16_t>(_workerThreads.size()) - _numNonBlockingThreads;
+	}
+    [[maybe_unused]] uint16_t TasksQueue::numNonBlockingThreads() const {
+		return _numNonBlockingThreads;
+	}
+    [[maybe_unused]] uint16_t TasksQueue::numSchedulingThreads() const {
+		return static_cast<uint16_t>(_schedulingThreads.size());
+	}
 
-		stats.added = reset ? stats_.added.exchange(0) : stats_.added.load();
-		stats.completed = reset ? stats_.completed.exchange(0) : stats_.completed.load();
-		stats.suspended = reset ? stats_.suspended.exchange(0) : stats_.suspended.load();
-		stats.resumed = reset ? stats_.resumed.exchange(0) : stats_.resumed.load();
-		stats.waiting = stats_.waiting.load();
-		stats.total = stats_.total.load();
+	TasksQueuePerformanceStats<std::uint32_t> TasksQueue::GetPerformanceStats(const bool reset) {
+		TasksQueuePerformanceStats<std::uint32_t> stats;
 
-		return std::move(stats);
+        if (reset) {
+            stats.added = _stats.added.exchange(0);
+            stats.completed = _stats.completed.exchange(0);
+            stats.suspended = _stats.suspended.exchange(0);
+            stats.resumed = _stats.resumed.exchange(0);
+        } else {
+            stats.added = _stats.added.load();
+            stats.completed = _stats.completed.load();
+            stats.suspended = _stats.suspended.load();
+            stats.resumed = _stats.resumed.load();
+        }
+
+		stats.waiting = _stats.waiting.load();
+		stats.total = _stats.total.load();
+
+		return stats;
 	}
 
 	void TasksQueue::Initialize(const Configuration& configuration) {
-		std::lock_guard<std::mutex> guard(initMutex_);
+		std::lock_guard<std::mutex> guard(_initMutex);
 
-		if (isInitialized_ || isShutDown_) {
+		if (_isInitialized || _isShuttingDown) {
 			return;
 		}
-		if (configuration.blockingThreads_ < 1) {		// It's pointless without any normal worker threads
+		if (configuration.blockingThreads < 1) {		// It's pointless without any normal worker threads
 			return;
 		}
 
-		CreateThreads(configuration.blockingThreads_, configuration.nonBlockingThreads_, configuration.schedulingThreads_);
-		isInitialized_ = true;
+		CreateThreads(configuration);
+        _isInitialized = true;
 	}
-	void TasksQueue::ShutDown() {
-		if (!isInitialized_ || isShutDown_) {
+	void TasksQueue::Cleanup() {
+		if (!_isInitialized || _isShuttingDown) {
 			return;
 		}
 
-		isShutDown_ = true;
+        _isShuttingDown = true;
 
-		tasksCondition_.notify_all();
-		scheduleCondition_.notify_all();
-		for (std::shared_ptr<TasksThread> thread : workerThreads_) {
+		_tasksCondition.notify_all();
+		_scheduleCondition.notify_all();
+		for (const std::shared_ptr<TasksThread>& thread : _workerThreads) {
 			thread->join();
 		}
-		for (std::shared_ptr<TasksThread> thread : schedulingThreads_) {
+		for (const std::shared_ptr<TasksThread>& thread : _schedulingThreads) {
 			thread->join();
 		}
 
 		{
-			std::lock_guard<std::mutex> guard(initMutex_);
-			workerThreads_.clear();
-			schedulingThreads_.clear();
-			numNonBlockingThreads_ = 0;
-			isInitialized_ = false;
+			std::lock_guard<std::mutex> guard(_initMutex);
+			_workerThreads.clear();
+			_schedulingThreads.clear();
+            _numNonBlockingThreads = 0;
+            _isInitialized = false;
+            _isShuttingDown = false;
 		}
 	}
 
-	bool TasksQueue::AddTask(TaskPtr task) {
-		if (!isInitialized_) {
+    [[maybe_unused]] bool TasksQueue::AddTask(const TaskPtr& task) {
+		if (!_isInitialized || _isShuttingDown) {
 			return false;
 		}
 
-		++stats_.added;
+		++_stats.added;
 		std::unique_lock<std::mutex> lock(task->GetTaskMutex_());
 		return AddTask(task, std::move(lock));
 	};
-
 	void TasksQueue::Update() {
-		if (!isInitialized_ || isShutDown_) {
+		if (!_isInitialized || _isShuttingDown) {
 			return;
 		}
 
-		if (scheduleEarliest_.load() <= scheduleClock::now()) {
-			scheduleCondition_.notify_one();
+		if (_scheduleEarliest.load() <= scheduleClock::now()) {
+			_scheduleCondition.notify_one();
 		}
 
 		std::vector<TaskPtr> runTasks;
 		std::vector<TaskPtr> ignoreTasks;
 
 		{
-			std::lock_guard<std::mutex> lockTasks(mtTasksMutex_);
+			std::lock_guard<std::mutex> lockTasks(_mtTasksMutex);
 
-			for (auto task : mtTasks_) {
+			for (const auto& task : _mtTasks) {
 				if (task) {
 					std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
 
-					if (task->GetOptions().priority >= runningPriority_) {
+					if (task->GetOptions().priority >= _runningPriority) {
 						runTasks.push_back(task);
 					}
 					else {
@@ -146,7 +154,7 @@ namespace TasksLib {
 				}
 			}
 
-			mtTasks_ = std::move(ignoreTasks);
+            _mtTasks = std::move(ignoreTasks);
 		}
 
 		// TODO: Don't execute all tasks at once, instead examine stats and come up with a smaller number, but staying ahead of newly added ones.
@@ -162,59 +170,59 @@ namespace TasksLib {
 		}
 	}
 
-	void TasksQueue::CreateThreads(const unsigned numBlockingThreads, const unsigned numNonBlockingThreads, const unsigned numSchedulingThreads) {
-		for (unsigned i = 0; i < numBlockingThreads; ++i) {
+	void TasksQueue::CreateThreads(const Configuration& i_config) {
+		for (int i = 0; i < i_config.blockingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteTasks, this, false);
-			workerThreads_.push_back(thread);
+			_workerThreads.push_back(thread);
 		}
-		for (unsigned i = 0; i < numNonBlockingThreads; ++i) {
+		for (int i = 0; i < i_config.nonBlockingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(true, &TasksQueue::ThreadExecuteTasks, this, true);
-			workerThreads_.push_back(thread);
+			_workerThreads.push_back(thread);
 		}
-		numNonBlockingThreads_ = numNonBlockingThreads;
-		for (unsigned i = 0; i < numSchedulingThreads; ++i) {
+        _numNonBlockingThreads = i_config.nonBlockingThreads;
+		for (int i = 0; i < i_config.schedulingThreads; ++i) {
 			auto thread = std::make_shared<TasksThread>(false, &TasksQueue::ThreadExecuteScheduledTasks, this);
-			schedulingThreads_.push_back(thread);
+			_schedulingThreads.push_back(thread);
 		}
 	}
-	bool TasksQueue::AddTask(TaskPtr task, const std::unique_lock<std::mutex> lockTask, const bool updateTotal) {
-		if (!task || isShutDown_) {
+	bool TasksQueue::AddTask(const TaskPtr& task, [[maybe_unused]] const std::unique_lock<std::mutex> lockTask, const bool updateTotal) {
+		if (!task || _isShuttingDown) {
 			return false;
 		}
 
-		if (task->options_.suspendTime > std::chrono::milliseconds(0)) {
+		if (task->_options.suspendTime > std::chrono::milliseconds(0)) {
 			{
-				std::lock_guard<std::mutex> lockSched(schedulerMutex_);
-				scheduledTasks_.insert(schedulePair(scheduleClock::now() + task->options_.suspendTime, task));
-				++stats_.suspended;
-				++stats_.waiting;
-				task->status_ = TaskStatus::TASK_SUSPENDED;
+				std::lock_guard<std::mutex> lockSched(_schedulerMutex);
+				_scheduledTasks.insert(schedulePair(scheduleClock::now() + task->_options.suspendTime, task));
+				++_stats.suspended;
+				++_stats.waiting;
+				task->_status = TaskStatus::TASK_SUSPENDED;
 			}
 
-			scheduleEarliest_ = scheduleTimePoint::min();
-			scheduleCondition_.notify_one();
+            _scheduleEarliest = scheduleTimePoint::min();
+			_scheduleCondition.notify_one();
 		} else {
 			if (!task->GetOptions().isMainThread) {
 				{
-					std::lock_guard<std::mutex> lock(tasksMutex_);
-					tasks_.push_back(task);
-					task->status_ = TaskStatus::TASK_IN_QUEUE;
+					std::lock_guard<std::mutex> lock(_tasksMutex);
+					_tasks.push_back(task);
+					task->_status = TaskStatus::TASK_IN_QUEUE;
 				}
 
-				tasksCondition_.notify_all();
+				_tasksCondition.notify_all();
 			} else {
-				std::lock_guard<std::mutex> lock(mtTasksMutex_);
-				mtTasks_.push_back(task);
-				task->status_ = TaskStatus::TASK_IN_QUEUE_MAIN_THREAD;
+				std::lock_guard<std::mutex> lock(_mtTasksMutex);
+				_mtTasks.push_back(task);
+				task->_status = TaskStatus::TASK_IN_QUEUE_MAIN_THREAD;
 			}
 
-			if (task->GetOptions().priority > runningPriority_) {
-				runningPriority_ = task->GetOptions().priority;
+			if (task->GetOptions().priority > _runningPriority) {
+                _runningPriority = task->GetOptions().priority;
 			}
 		}
 
 		if (updateTotal) {
-			++stats_.total;
+			++_stats.total;
 		}
 		return true;
 	}
@@ -223,27 +231,27 @@ namespace TasksLib {
 		for (;;) {
 			TaskPtr task = nullptr;
 			{
-				std::unique_lock<std::mutex> lockTasks(tasksMutex_);
+				std::unique_lock<std::mutex> lockTasks(_tasksMutex);
 
-				while (!isShutDown_ && tasks_.empty()) {
-					tasksCondition_.wait(lockTasks);
+				while (!_isShuttingDown && _tasks.empty()) {
+					_tasksCondition.wait(lockTasks);
 				}
-				if (isShutDown_) {
+				if (_isShuttingDown) {
 					break;
 				}
 
-				for (auto it = tasks_.begin(); it < tasks_.end(); ++it) {
+				for (auto it = _tasks.begin(); it < _tasks.end(); ++it) {
 					task = *it;
 					if (task) {
 						std::lock_guard<std::mutex> lockTask(task->GetTaskMutex_());
 						if ((task->GetOptions().isBlocking && ignoreBlocking)
-							|| (task->GetOptions().priority < runningPriority_)
+							|| (task->GetOptions().priority < _runningPriority)
 							)
 						{
 							task = nullptr;
 						}
 						else {
-							tasks_.erase(it);
+							_tasks.erase(it);
 							break;
 						}
 					}
@@ -261,32 +269,32 @@ namespace TasksLib {
 			std::vector<TaskPtr> runTasks;
 
 			{
-				std::unique_lock<std::mutex> lockSched(schedulerMutex_);
+				std::unique_lock<std::mutex> lockSched(_schedulerMutex);
 
-				while (!isShutDown_ && scheduleEarliest_.load() > scheduleClock::now()) {
-					scheduleCondition_.wait(lockSched);
+				while (!_isShuttingDown && _scheduleEarliest.load() > scheduleClock::now()) {
+					_scheduleCondition.wait(lockSched);
 				}
-				if (isShutDown_) {
+				if (_isShuttingDown) {
 					break;
 				}
 
 				auto now = scheduleClock::now();
-				auto it = scheduledTasks_.begin();
-				while ((it != scheduledTasks_.end()) && (it->first < now)) {
+				auto it = _scheduledTasks.begin();
+				while ((it != _scheduledTasks.end()) && (it->first < now)) {
 					auto task = it->second;
 					std::unique_lock<std::mutex> lockTask(task->GetTaskMutex_());
-					task->options_.suspendTime = TaskDelay{ 0 };
+					task->_options.suspendTime = TaskDelay{0 };
 					runTasks.push_back(task);
-					it = scheduledTasks_.erase(it);
+					it = _scheduledTasks.erase(it);
 				}
 
-				scheduleEarliest_ = (it != scheduledTasks_.end()) ? it->first : scheduleTimePoint::max();
+                _scheduleEarliest = (it != _scheduledTasks.end()) ? it->first : scheduleTimePoint::max();
 			}
 
 			while (!runTasks.empty()) {
 				auto task = runTasks.back();
-				++stats_.resumed;
-				--stats_.waiting;
+				++_stats.resumed;
+				--_stats.waiting;
 				
 				std::unique_lock<std::mutex> lock(task->GetTaskMutex_());
 				AddTask(task, std::move(lock), false);
@@ -296,17 +304,17 @@ namespace TasksLib {
 		}
 	}
 	
-	void TasksQueue::RescheduleTask(std::shared_ptr<Task> task) {
+	void TasksQueue::RescheduleTask(const std::shared_ptr<Task>& task) {
 		std::unique_lock<std::mutex> lockTaskData(task->GetTaskMutex_());
-		if (task->doReschedule_) {
+		if (task->_doReschedule) {
 			task->ApplyReschedule_();
 			AddTask(task, std::move(lockTaskData), false);
 		} else {
-			if (task->options_.priority > 0) {
-				runningPriority_ = 0;
+			if (task->_options.priority > 0) {
+                _runningPriority = 0;
 			}
-			--stats_.total;
-			++stats_.completed;
+			--_stats.total;
+			++_stats.completed;
 		}
 	}
 

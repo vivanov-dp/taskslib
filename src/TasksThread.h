@@ -9,11 +9,11 @@ namespace TasksLib {
 		template <class F, class... Args>
 		explicit TasksThread(const bool ignoreBlocking, F&& f, Args&&... args)
 			: std::thread(std::forward<F>(f), std::forward<Args>(args)...)
-			, ignoreBlocking_(ignoreBlocking)
+			, _ignoreBlocking(ignoreBlocking)
 		{}
 
 	private:
-		bool ignoreBlocking_;
+        bool _ignoreBlocking;
 	};
 
 }

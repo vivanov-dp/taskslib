@@ -7,7 +7,7 @@
 
 namespace TasksLib {
 
-	class TaskTest : public TestWithRandom {
+	class [[maybe_unused]] TaskTest : public TestWithRandom {
 	public:
 		Task task;
 
@@ -15,7 +15,7 @@ namespace TasksLib {
 			task.ApplyReschedule_();
 		}
 		void SetDoReschedule(Task& task, const bool doReschedule) const {
-			task.doReschedule_ = doReschedule;
+			task._doReschedule = doReschedule;
 		}
 		void ResetReschedule(Task& task) const {
 			task.ResetReschedule_();

@@ -2,10 +2,10 @@
 
 namespace TasksLib {
 
-	TasksQueuesContainer::TasksQueuesContainer() {};
+	TasksQueuesContainer::TasksQueuesContainer() = default;
 	TasksQueuesContainer::~TasksQueuesContainer() {
 		for (auto& it : queueMap_) {
-			it.second.ShutDown();
+            it.second.Cleanup();
 		}
 	}
 
@@ -17,7 +17,8 @@ namespace TasksLib {
 
 		return &(queueIt->second);
 	}
-	void TasksQueuesContainer::CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration) {
+
+    [[maybe_unused]] void TasksQueuesContainer::CreateQueue(const std::string& queueName, const TasksQueue::Configuration& configuration) {
 		auto queueIt = queueMap_.find(queueName);
 		if (queueIt != queueMap_.end()) {
 			return;
@@ -28,11 +29,11 @@ namespace TasksLib {
 		queueIt->second.Initialize(configuration);
 	}
 
-	const size_t TasksQueuesContainer::GetQueuesCount() const {
+    [[maybe_unused]] size_t TasksQueuesContainer::GetQueuesCount() const {
 		return queueMap_.size();
 	}
 
-	void TasksQueuesContainer::Update() {
+    [[maybe_unused]] void TasksQueuesContainer::Update() {
 		for (auto& it : queueMap_) {
 			it.second.Update();
 		}
