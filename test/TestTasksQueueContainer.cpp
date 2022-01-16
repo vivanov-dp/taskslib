@@ -47,7 +47,7 @@ namespace TasksLib {
 
 		unsigned count = 0;
 		auto task = std::make_shared<Task>(
-			[&count](TasksQueue* queue, TaskPtr task) -> void {
+            (TaskExecutable)[&count](TasksQueue* queue, TaskPtr task) -> void {
 				count++;
 			},
 			TaskThreadTarget{ MAIN_THREAD }

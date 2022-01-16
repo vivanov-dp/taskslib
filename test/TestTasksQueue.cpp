@@ -119,7 +119,7 @@ namespace TasksLib {
 
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, const TaskPtr& task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, const TaskPtr& task) -> void {
 					threadSet = true;
 				}
 			)
@@ -139,7 +139,7 @@ namespace TasksLib {
 
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
 					threadSet = true;
 				},
 				TaskThreadTarget::MAIN_THREAD
@@ -168,7 +168,7 @@ namespace TasksLib {
 		for (int i = 0; i < 4; i++) {
 			queue.AddTask(
 				std::make_shared<Task>(
-					[](TasksQueue* queue, TaskPtr task) -> void {
+                    (TaskExecutable)[](TasksQueue* queue, TaskPtr task) -> void {
 						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					},
 					TaskBlocking{ true }
@@ -177,7 +177,7 @@ namespace TasksLib {
 		}
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
 					threadSet = true;
 				}
 			)
@@ -199,7 +199,7 @@ namespace TasksLib {
 		bool threadSet = false;
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					prioritySet = true;
 				},
@@ -208,7 +208,7 @@ namespace TasksLib {
 		);
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
 					threadSet = true;
 				}
 			)
@@ -227,7 +227,7 @@ namespace TasksLib {
 		bool threadSet = false;
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&prioritySet](TasksQueue* queue, TaskPtr task) -> void {
 					std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					prioritySet = true;
 				},
@@ -236,7 +236,7 @@ namespace TasksLib {
 		);
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
 					threadSet = true;
 				},
 				TaskThreadTarget{ MAIN_THREAD }
@@ -266,7 +266,7 @@ namespace TasksLib {
 		bool threadSet = false;
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
 					threadSet = true;
 				},
 				TaskDelay{ 100 }
@@ -292,7 +292,7 @@ namespace TasksLib {
 		bool threadSet2 = false;
 
 		auto task = std::make_shared<Task>(
-			[&ready, &threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
+            (TaskExecutable)[&ready, &threadSet1, &threadSet2](TasksQueue* queue, TaskPtr task) -> void {
 				if (!ready) return;			// Try to minimize time spent in thread if the test is not ready
 				if (!threadSet1) {
 					threadSet1 = true;
@@ -317,7 +317,7 @@ namespace TasksLib {
 		bool threadSet1 = false;
 
 		auto task = std::make_shared<Task>(
-			[&threadSet1](TasksQueue* queue, TaskPtr task) -> void {
+            (TaskExecutable)[&threadSet1](TasksQueue* queue, TaskPtr task) -> void {
 				if (!threadSet1) {
 					threadSet1 = true;
 					task->Reschedule(TaskThreadTarget{ WORKER_THREAD });
@@ -342,7 +342,7 @@ namespace TasksLib {
 		bool threadSet = false;
 
 		auto task = std::make_shared<Task>(
-			[priority, modifier, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+            (TaskExecutable)[priority, modifier, &threadSet](TasksQueue* queue, TaskPtr task)->void {
 				threadSet = true;
 				task->Reschedule(TaskPriority{ static_cast<uint32_t>( priority + modifier ) });
 			},
@@ -364,7 +364,7 @@ namespace TasksLib {
 		bool blocking = static_cast<bool>(dist(randEng));
 
 		auto task = std::make_shared<Task>(
-			[blocking, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+            (TaskExecutable)[blocking, &threadSet](TasksQueue* queue, TaskPtr task)->void {
 				threadSet = true;
 				task->Reschedule(TaskBlocking{ !blocking });
 			},
@@ -386,7 +386,7 @@ namespace TasksLib {
 		bool threadSet = false;
 
 		auto task = std::make_shared<Task>(
-			[delay, &threadSet](TasksQueue* queue, TaskPtr task)->void {
+            (TaskExecutable)[delay, &threadSet](TasksQueue* queue, TaskPtr task)->void {
 				threadSet = true;
 				task->Reschedule( delay );
 			},

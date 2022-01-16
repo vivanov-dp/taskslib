@@ -71,7 +71,7 @@ namespace TasksLib {
 		};
 
 		TasksQueue();
-		explicit TasksQueue(const Configuration& configuration);
+		TasksQueue(const Configuration& configuration);
 		virtual ~TasksQueue();
 
 		[[nodiscard]] bool isInitialized() const;

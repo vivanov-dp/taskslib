@@ -27,7 +27,7 @@ namespace TasksLib {
 	}
 	TEST_F(TaskTest, CreatesWithOptions) {
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		TaskOptions options = GenerateRandomOptions(randEng);
 		options.SetOptions(lambda);
 		Task newTask{ options };
@@ -45,7 +45,7 @@ namespace TasksLib {
 		ASSERT_EQ(task.GetRescheduleOptions(), opt);
 
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		opt = GenerateRandomOptions(randEng);
 		opt.SetOptions(lambda);
 		
@@ -60,7 +60,7 @@ namespace TasksLib {
 		TaskOptions opt;
 		SetDoReschedule(task, true);
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		opt = GenerateRandomOptions(randEng);
 		opt.SetOptions(lambda);
 
@@ -76,7 +76,7 @@ namespace TasksLib {
 		ASSERT_EQ(task.GetOptions(), opt);
 		
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		opt = GenerateRandomOptions(randEng);
 		opt.SetOptions(lambda);
 

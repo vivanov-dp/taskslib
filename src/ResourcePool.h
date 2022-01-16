@@ -18,7 +18,7 @@ namespace TasksLib {
 		ResourceDeleter() = delete;
 		explicit ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool);
 		ResourceDeleter(const ResourceDeleter<T>& rhs) = delete;
-		ResourceDeleter(const ResourceDeleter<T>&& rhs);
+		ResourceDeleter(const ResourceDeleter<T>&& rhs) noexcept ;
 
 		void operator()(T* ptr);
 
@@ -32,28 +32,27 @@ namespace TasksLib {
 		virtual ~ResourcePool();
 
 		virtual void Add(std::unique_ptr<T> elem);
-		std::unique_ptr<T, ResourceDeleter<T>> Acquire();
-		std::unique_ptr<T, ResourceDeleter<T>> AddAcquire(std::unique_ptr<T> elem);
-		
-		bool IsEmpty() const;
-		size_t Size() const;
+
+        [[maybe_unused]] std::unique_ptr<T, ResourceDeleter<T>> Acquire();
+        [[maybe_unused]] std::unique_ptr<T, ResourceDeleter<T>> AddAcquire(std::unique_ptr<T> elem);
+
+        [[maybe_unused]] [[nodiscard]] bool IsEmpty() const;
+        [[maybe_unused]] [[nodiscard]] size_t Size() const;
 
 	private:
 		std::mutex poolMutex_;
-		std::shared_ptr<ResourcePool<T>*> thisPtr_;				// This is a shared_ptr to a ptr so that it wouldn't try to release *this when destructing the object
+		std::shared_ptr<ResourcePool<T>*> thisPtr_;				// This is a shared_ptr to a ptr so that it wouldn't
+                                                                // try to release *this when destructing the object
 		std::stack<std::unique_ptr<T>> pool_;
 	};
 
 	// ==========================================================================
 
-	template <class T>
-	ResourceDeleter<T>::ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool)
+	template <class T> ResourceDeleter<T>::ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool)
 		: pool_(pool) {}
-	template <class T>
-	ResourceDeleter<T>::ResourceDeleter(const ResourceDeleter<T>&& rhs)
+	template <class T> ResourceDeleter<T>::ResourceDeleter(const ResourceDeleter<T>&& rhs) noexcept
 		: pool_(std::move(rhs.pool_)) {}
-	template <class T>
-	void ResourceDeleter<T>::operator()(T* ptr) {
+	template <class T> void ResourceDeleter<T>::operator()(T* ptr) {
 		if (!ptr) {
 			return;
 		}
@@ -68,10 +67,8 @@ namespace TasksLib {
 		}
 	}
 
-	template <class T>
-	ResourcePool<T>::ResourcePool() : thisPtr_(new ResourcePool<T>*{ this }) {}
-	template <class T>
-	ResourcePool<T>::~ResourcePool() {}
+	template <class T> ResourcePool<T>::ResourcePool() : thisPtr_(new ResourcePool<T>*{ this }) {}
+	template <class T> ResourcePool<T>::~ResourcePool() = default;
 
 	template <class T>
 	void ResourcePool<T>::Add(std::unique_ptr<T> elem) {
@@ -80,7 +77,7 @@ namespace TasksLib {
 		pool_.push(std::move(elem));
 	}
 	template <class T>
-	std::unique_ptr<T, ResourceDeleter<T>> ResourcePool<T>::Acquire() {
+    [[maybe_unused]] std::unique_ptr<T, ResourceDeleter<T>> ResourcePool<T>::Acquire() {
 		std::lock_guard<std::mutex> lock(poolMutex_);
 
 		T* resourcePtr = nullptr;
@@ -93,18 +90,16 @@ namespace TasksLib {
 		return std::move(tmpUPtr);
 	}
 	template <class T>
-	std::unique_ptr<T, ResourceDeleter<T>> ResourcePool<T>::AddAcquire(std::unique_ptr<T> elem) {
+    [[maybe_unused]] std::unique_ptr<T, ResourceDeleter<T>> ResourcePool<T>::AddAcquire(std::unique_ptr<T> elem) {
 		T* resourcePtr = elem.release();
 		std::unique_ptr<T, ResourceDeleter<T>> tmpUPtr{ resourcePtr, ResourceDeleter<T>{ std::weak_ptr<ResourcePool<T>*>{ thisPtr_ } } };
 		return std::move(tmpUPtr);
 	}
 
-	template <class T>
-	bool ResourcePool<T>::IsEmpty() const {
+	template <class T> [[maybe_unused]] bool ResourcePool<T>::IsEmpty() const {
 		return pool_.empty();
 	}
-	template <class T>
-	size_t ResourcePool<T>::Size() const {
+	template <class T> [[maybe_unused]] size_t ResourcePool<T>::Size() const {
 		return pool_.size();
 	}
 }

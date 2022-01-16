@@ -12,11 +12,6 @@ namespace TasksLib {
 		: _status(TASK_INIT)
 		, _doReschedule(false)
 	{}
-    template <typename... Ts> Task::Task(Ts&& ...ts)
-        : Task()
-    {
-        _options.SetOptions(std::forward<Ts>(ts)...);
-    }
 	Task::~Task() = default;
 
     [[maybe_unused]] TaskStatus Task::GetStatus() const {

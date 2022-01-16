@@ -15,7 +15,7 @@ namespace TasksLib {
 		/* Creates Task with the specified set of options
 		   Usage: Task( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
 		*/
-		template <typename... Ts> explicit Task(Ts&& ...opts);
+		template <typename... Ts> Task(Ts&& ...opts);
 		virtual ~Task();
 
         [[maybe_unused]] [[nodiscard]] TaskStatus GetStatus() const;
@@ -50,6 +50,12 @@ namespace TasksLib {
 	};
 
     template <> void Task::Reschedule();
+    // This has to be defined in the .h
+    template <typename... Ts> Task::Task(Ts&& ...ts)
+            : Task()
+    {
+        _options.SetOptions(std::forward<Ts>(ts)...);
+    }
 
 
 

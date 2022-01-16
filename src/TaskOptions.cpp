@@ -47,10 +47,9 @@ namespace TasksLib {
 		return !(operator==(other));
 	}
 
-	void TaskOptions::SetOption_(const TaskOptions& other) {
-		operator=(other);
-	}
-
+    void TaskOptions::SetOption_(const TaskOptions& other) {
+        operator=(other);
+    }
     [[maybe_unused]] void TaskOptions::SetOption_(TaskOptions&& other) {
 		operator=(std::move(other));
 	}

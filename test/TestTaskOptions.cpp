@@ -30,7 +30,7 @@ namespace TasksLib {
 	TEST_F(TaskOptionsTest, CreatesWithCopy) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
 		otherOpt.SetOptions(lambda);
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
@@ -45,7 +45,7 @@ namespace TasksLib {
 	TEST_F(TaskOptionsTest, CreatesWithMove) {
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
 		otherOpt.SetOptions(lambda);
 		if (otherOpt == opt) {						// Tick that just in case we hit the jackpot and randomly generate the default values
@@ -92,7 +92,7 @@ namespace TasksLib {
 	}
 	TEST_F(TaskOptionsTest, SetsExecutable) {
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 
 		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
 		opt.SetOptions(lambda);
@@ -101,7 +101,7 @@ namespace TasksLib {
 
 		execTest.ResetTest();
 		ASSERT_NE(execTest.test, execTest.testBase + execTest.generated);
-		opt.SetOptions([&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); });
+		opt.SetOptions((TaskExecutable)[&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); });
 		TestLambda(opt, execTest);
 	}
 	TEST_F(TaskOptionsTest, SetsSuspendTime) {
@@ -130,7 +130,7 @@ namespace TasksLib {
 
 		TaskOptions other;
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		other = GenerateRandomOptions(randEng);
 		other.SetOptions(lambda);
 
@@ -142,7 +142,7 @@ namespace TasksLib {
 	
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithCopy) {
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 		
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values
@@ -155,7 +155,7 @@ namespace TasksLib {
 	}
 	TEST_F(TaskOptionsTest, AssignsFromOtherWithMove) {
 		ExecutableTester execTest(randEng);
-		auto lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
+		TaskExecutable lambda = [&](TasksQueue* queue, TaskPtr task)->void { execTest.PerformTest(); };
 		TaskOptions otherOpt = GenerateRandomOptions(randEng);
 
 		opt.SetOptions(!otherOpt.isBlocking);		// Tick that just in case we hit the jackpot and randomly generate the default values

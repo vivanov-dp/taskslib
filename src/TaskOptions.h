@@ -16,7 +16,7 @@ namespace TasksLib {
 		   Creates TaskOptions with the specified set of values
 		   Usage: TaskOptions( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
 		*/
-		template <typename... Ts> explicit TaskOptions(Ts&& ...opts);
+		template <typename... Ts> TaskOptions(Ts&& ...opts);
 
 		TaskPriority	priority;
 		bool			isBlocking;
