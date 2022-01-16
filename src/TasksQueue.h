@@ -63,7 +63,7 @@ namespace TasksLib {
 	public:
 		struct Configuration {
 			Configuration();
-			explicit Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads = 0, uint16_t numSchedulingThreads = 0);
+			Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads = 0, uint16_t numSchedulingThreads = 0);
 
             uint16_t blockingThreads;
             uint16_t nonBlockingThreads;

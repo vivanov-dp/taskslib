@@ -55,4 +55,17 @@ namespace TasksLib {
         [[maybe_unused]] void SetOption_(const TaskDelay& ms);
 	};
 
+
+
+    // These have to be defined in the .h
+    template <typename T> void TaskOptions::SetOptions(T&& opt)
+    {
+        SetOption_(std::forward<T>(opt));
+    }
+    template <typename T, typename... Ts> [[maybe_unused]] void TaskOptions::SetOptions(T&& opt, Ts&& ... opts)
+    {
+        SetOptions(std::forward<T>(opt));
+        SetOptions(std::forward<Ts>(opts)...);
+    }
+
 }

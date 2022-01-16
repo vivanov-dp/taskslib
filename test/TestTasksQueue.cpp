@@ -2,6 +2,7 @@
 #include "gmock/gmock.h"
 
 #include <chrono>
+#include <thread>
 
 #include "Types.h"
 #include "TestTools.h"
@@ -28,7 +29,7 @@ namespace TasksLib {
 		}
 		// Check queue.stats: -1 is skip, >=0 is EXPECT_EQ()
 		void CheckStats(int added = -1, int completed = -1, int suspended = -1, int resumed = -1, int waiting = -1, int total = -1, std::string helper = "") {
-			TasksQueuePerformanceStats<std::int32_t> stats = queue.GetPerformanceStats();
+			TasksQueuePerformanceStats<std::uint32_t> stats = queue.GetPerformanceStats();
 			if (added >= 0) {
 				EXPECT_EQ(stats.added, added) << helper;
 			}
@@ -62,9 +63,9 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, CreatesWithConfig) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
-		unsigned blocking = random(randEng);
-		unsigned nonBlocking = random(randEng);
-		unsigned scheduling = random(randEng);
+		uint16_t blocking = random(randEng);
+		uint16_t nonBlocking = random(randEng);
+		uint16_t scheduling = random(randEng);
 
 		TasksQueue checkQueue({ blocking, nonBlocking, scheduling });
 		
@@ -78,9 +79,9 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, Initializes) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
-		unsigned blocking = random(randEng);
-		unsigned nonBlocking = random(randEng);
-		unsigned scheduling = random(randEng);
+		uint16_t blocking = random(randEng);
+		uint16_t nonBlocking = random(randEng);
+		uint16_t scheduling = random(randEng);
 
 		TasksQueue checkQueue;
 		checkQueue.Initialize({ blocking, nonBlocking, scheduling });
@@ -95,16 +96,16 @@ namespace TasksLib {
 	}
 	TEST_F(TasksQueueTest, ShutsDown) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
-		unsigned blocking = random(randEng);
-		unsigned nonBlocking = random(randEng);
-		unsigned scheduling = random(randEng);
+		uint16_t blocking = random(randEng);
+		uint16_t nonBlocking = random(randEng);
+		uint16_t scheduling = random(randEng);
 
 		TasksQueue checkQueue;
 		checkQueue.Initialize({ blocking, nonBlocking, scheduling });
 
 		ASSERT_TRUE(checkQueue.isInitialized());
 
-		checkQueue.ShutDown();
+		checkQueue.Cleanup();
 
 		EXPECT_TRUE(checkQueue.isShutDown());
 		EXPECT_FALSE(checkQueue.isInitialized());
@@ -118,7 +119,7 @@ namespace TasksLib {
 
 		queue.AddTask(
 			std::make_shared<Task>(
-				[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+				[&threadSet](TasksQueue* queue, const TaskPtr& task) -> void {
 					threadSet = true;
 				}
 			)

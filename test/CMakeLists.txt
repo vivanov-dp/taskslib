@@ -1,5 +1,7 @@
 include(ExternalProject)
 
+set(CMAKE_CXX_FLAGS "-Wextra -Wshadow")
+
 # variables to help keep track of gtest paths
 set(GTEST_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/gtest")
 set(GTEST_LOCATION "${GTEST_PREFIX}/src/GTestExternal-build/googlemock/gtest")
@@ -10,8 +12,8 @@ set(GMOCK_INCLUDES "${GTEST_PREFIX}/src/GTestExternal/googlemock/include")
 # external project download and build (no install for gtest)
 ExternalProject_Add(GTestExternal
 	GIT_REPOSITORY https://github.com/google/googletest.git
-	GIT_TAG a6f06bf2fd3b832822cd4e9e554b7d47f32ec084
-	GIT_SHALLOW FALSE
+	GIT_TAG release-1.11.0
+	GIT_SHALLOW TRUE
 	GIT_PROGRESS TRUE
     PREFIX "${GTEST_PREFIX}"
 
@@ -28,6 +30,8 @@ ExternalProject_Add(GTestExternal
     LOG_DOWNLOAD ON
     LOG_CONFIGURE ON
     LOG_BUILD ON
+
+    CMAKE_CACHE_ARGS "-DCMAKE_MAKE_PROGRAM:STRING=${CMAKE_MAKE_PROGRAM}"
     )
 set_target_properties(GTestExternal PROPERTIES EXCLUDE_FROM_DEFAULT_BUILD TRUE)
 

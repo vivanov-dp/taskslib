@@ -22,16 +22,6 @@ namespace TasksLib {
         SetOptions(std::forward<Ts>(opts)...);
     }
 
-    template <typename T> void TaskOptions::SetOptions(T&& opt)
-    {
-        SetOption_(std::forward<T>(opt));
-    }
-    template <typename T, typename... Ts> [[maybe_unused]] void TaskOptions::SetOptions(T&& opt, Ts&& ... opts)
-    {
-        SetOptions(std::forward<T>(opt));
-        SetOptions(std::forward<Ts>(opts)...);
-    }
-
 	TaskOptions& TaskOptions::operator=(const TaskOptions& other) = default;
 	TaskOptions& TaskOptions::operator=(TaskOptions&& other) noexcept {
 		priority		= other.priority;

@@ -12,10 +12,10 @@ using namespace TasksLib;
 
 class TestWithRandom : public ::testing::Test {
 public:
-	TestWithRandom::TestWithRandom() {
+	TestWithRandom() {
 		randEng.seed(randDev());
 	}
-	virtual TestWithRandom::~TestWithRandom() {}
+	~TestWithRandom() override = default;
 
 	std::random_device randDev;
 	std::default_random_engine randEng;
