@@ -8,23 +8,23 @@ namespace TasksLib {
 
 	class TaskOptions {
 	public:
+        TaskPriority	priority;
+        bool			isBlocking;
+        bool			isMainThread;
+        TaskExecutable	executable;
+        TaskDelay		suspendTime;
+
+    public:
 		/* Creates TaskOptions with the default set of values */
 		TaskOptions() noexcept;
 		TaskOptions(const TaskOptions& other) noexcept;
-		TaskOptions(TaskOptions&& other) noexcept ;
+		TaskOptions(TaskOptions&& other) noexcept;
 		/*
 		   Creates TaskOptions with the specified set of values
 		   Usage: TaskOptions( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
 		*/
 		template <typename... Ts> TaskOptions(Ts&& ...opts);
 
-		TaskPriority	priority;
-		bool			isBlocking;
-		bool			isMainThread;
-		TaskExecutable	executable;
-		TaskDelay		suspendTime;
-
-	public:
 		template <typename T> void SetOptions(T&& opt);
 		template <typename T, typename... Ts> [[maybe_unused]] void SetOptions(T&& opt, Ts&& ... opts);
 
@@ -58,6 +58,11 @@ namespace TasksLib {
 
 
     // These have to be defined in the .h
+    template <typename... Ts> TaskOptions::TaskOptions(Ts&& ...opts)
+            : TaskOptions()
+    {
+        SetOptions(std::forward<Ts>(opts)...);
+    }
     template <typename T> void TaskOptions::SetOptions(T&& opt)
     {
         SetOption_(std::forward<T>(opt));

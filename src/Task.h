@@ -14,6 +14,8 @@ namespace TasksLib {
 		Task();
 		/* Creates Task with the specified set of options
 		   Usage: Task( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
+
+		   NOTE: Shut up Clang-Tidy! This is intended to be implicit and isn't even single-argument
 		*/
 		template <typename... Ts> Task(Ts&& ...opts);
 		virtual ~Task();
@@ -49,8 +51,16 @@ namespace TasksLib {
         friend class TaskTest;			// To enable tests to call ApplyReschedule_() & ResetReschedule_(), which are called by TasksQueue
 	};
 
+    // This explicit specialization has to be declared out of the non-namespace scope
     template <> void Task::Reschedule();
-    // This has to be defined in the .h
+
+    // These have to be defined in the .h
+    template <typename... Ts> void Task::Reschedule(Ts&& ... ts) {
+        std::lock_guard<std::mutex> lock(_taskMutex);
+
+        _rescheduleOptions.SetOptions(std::forward<Ts>(ts)...);
+        Reschedule();
+    }
     template <typename... Ts> Task::Task(Ts&& ...ts)
             : Task()
     {

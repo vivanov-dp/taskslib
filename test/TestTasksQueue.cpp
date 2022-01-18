@@ -13,6 +13,28 @@ namespace TasksLib {
 
 	using namespace ::testing;
 
+#define CHECK_STATS(added, completed, suspended, resumed, waiting, total, helper) { \
+    TasksQueuePerformanceStats<std::uint32_t> stats = queue.GetPerformanceStats();  \
+    if ((added) >= 0) {                                                             \
+        EXPECT_EQ(stats.added, (added)) << (helper);                                \
+    }                                                                               \
+    if ((completed) >= 0) {                                                         \
+        EXPECT_EQ(stats.completed, (completed)) << (helper);                        \
+    }                                                                               \
+    if ((suspended) >= 0) {                                                         \
+        EXPECT_EQ(stats.suspended, (suspended)) << (helper);                        \
+    }                                                                               \
+    if ((resumed) >= 0) {                                                           \
+        EXPECT_EQ(stats.resumed, (resumed)) << (helper);                            \
+    }                                                                               \
+    if ((waiting) >= 0) {                                                           \
+        EXPECT_EQ(stats.waiting, (waiting)) << (helper);                            \
+    }                                                                               \
+    if ((total) >= 0) {                                                             \
+        EXPECT_EQ(stats.total, (total)) << (helper);                                \
+    }                                                                               \
+}
+
 	class TasksQueueTest : public TestWithRandom {
 	public:
 		TasksQueue queue;
@@ -28,7 +50,7 @@ namespace TasksLib {
 			ASSERT_TRUE(queue.isInitialized());
 		}
 		// Check queue.stats: -1 is skip, >=0 is EXPECT_EQ()
-		void CheckStats(int added = -1, int completed = -1, int suspended = -1, int resumed = -1, int waiting = -1, int total = -1, std::string helper = "") {
+		inline void CheckStats(int added = -1, int completed = -1, int suspended = -1, int resumed = -1, int waiting = -1, int total = -1, const std::string& helper = "") {
 			TasksQueuePerformanceStats<std::uint32_t> stats = queue.GetPerformanceStats();
 			if (added >= 0) {
 				EXPECT_EQ(stats.added, added) << helper;
@@ -54,7 +76,7 @@ namespace TasksLib {
 		TasksQueue checkQueue;
 
 		EXPECT_FALSE(checkQueue.isInitialized());
-		EXPECT_FALSE(checkQueue.isShutDown());
+		EXPECT_FALSE(checkQueue.isShuttingDown());
 
 		EXPECT_EQ(checkQueue.numWorkerThreads(), 0);
 		EXPECT_EQ(checkQueue.numBlockingThreads(), 0);
@@ -75,7 +97,7 @@ namespace TasksLib {
 		EXPECT_EQ(checkQueue.numNonBlockingThreads(), nonBlocking);
 		EXPECT_EQ(checkQueue.numSchedulingThreads(), scheduling);
 
-		CheckStats(0, 0, 0, 0, 0, 0);
+		CheckStats(0, 0, 0, 0, 0, 0, "CreatesWithConfig");
 	}
 	TEST_F(TasksQueueTest, Initializes) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
@@ -92,7 +114,7 @@ namespace TasksLib {
 		EXPECT_EQ(checkQueue.numNonBlockingThreads(), nonBlocking);
 		EXPECT_EQ(checkQueue.numSchedulingThreads(), scheduling);
 
-		CheckStats(0,0,0,0,0,0);
+		CheckStats(0,0,0,0,0,0, "Initializes");
 	}
 	TEST_F(TasksQueueTest, ShutsDown) {
 		std::uniform_int_distribution<unsigned> random(1, 15);
@@ -107,7 +129,7 @@ namespace TasksLib {
 
 		checkQueue.Cleanup();
 
-		EXPECT_TRUE(checkQueue.isShutDown());
+		EXPECT_TRUE(checkQueue.isShuttingDown());
 		EXPECT_FALSE(checkQueue.isInitialized());
 		EXPECT_EQ(checkQueue.numWorkerThreads(), 0);
 		EXPECT_EQ(checkQueue.numBlockingThreads(), 0);
@@ -124,7 +146,7 @@ namespace TasksLib {
 				}
 			)
 		);
-		CheckStats(1, -1, -1, -1, -1, -1, "Should add the task");
+		CheckStats(1, -1, -1, -1, -1, -1, "AddsTaskWorkerThread: Should add the task");
 
 		auto now = std::chrono::steady_clock::now();
 		do {
@@ -132,20 +154,20 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(50)));
 
 		EXPECT_TRUE(threadSet);
-		CheckStats(1, 1, -1, -1, -1, 0, "Should run in a worker thread");
+		CheckStats(1, 1, -1, -1, -1, 0, "AddsTaskWorkerThread: Should run in a worker thread");
 	}
 	TEST_F(TasksQueueTest, AddsTaskMainThread) {
 		bool threadSet = false;
 
 		queue.AddTask(
 			std::make_shared<Task>(
-                (TaskExecutable)[&threadSet](TasksQueue* queue, TaskPtr task) -> void {
+                (TaskExecutable)[&threadSet](TasksQueue* queue, const TaskPtr& task) -> void {
 					threadSet = true;
 				},
 				TaskThreadTarget::MAIN_THREAD
 			)
 		);
-		CheckStats(1, -1, -1, -1, -1, -1, "Should add the task");
+		CheckStats(1, -1, -1, -1, -1, -1, "AddsTaskMainThread: Should add the task");
 
 		auto now = std::chrono::steady_clock::now();
 		do {
@@ -153,7 +175,7 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(100))));
 
 		EXPECT_FALSE(threadSet);
-		CheckStats(1, -1, -1, -1, -1, 1, "Shouldn't run in a worker thread");
+		CheckStats(1, -1, -1, -1, -1, 1, "AddsTaskMainThread: Shouldn't run in a worker thread");
 
 		now = std::chrono::steady_clock::now();
 		do {
@@ -161,7 +183,7 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(50))));
 
 		EXPECT_TRUE(threadSet);
-		CheckStats(1, 1, -1, -1, -1, 0, "Should run in the main thread");
+		CheckStats(1, 1, -1, -1, -1, 0, "AddsTaskMainThread: Should run in the main thread");
 	}
 	TEST_F(TasksQueueTest, IgnoresBlockingProperly) {
 		bool threadSet = false;

@@ -16,11 +16,6 @@ namespace TasksLib {
     {
 		operator=(std::move(other));
 	}
-    template <typename... Ts> TaskOptions::TaskOptions(Ts&& ...opts)
-            : TaskOptions()
-    {
-        SetOptions(std::forward<Ts>(opts)...);
-    }
 
 	TaskOptions& TaskOptions::operator=(const TaskOptions& other) = default;
 	TaskOptions& TaskOptions::operator=(TaskOptions&& other) noexcept {

@@ -27,17 +27,9 @@ namespace TasksLib {
 		return _doReschedule;
 	}
 
-    template <typename... Ts>
-    void Task::Reschedule(Ts&& ... ts) {
-        std::lock_guard<std::mutex> lock(_taskMutex);
-
-        _rescheduleOptions.SetOptions(std::forward<Ts>(ts)...);
-        Reschedule();
-    }
     template <> void Task::Reschedule() {
         _doReschedule = true;
     }
-
 
 	std::mutex& Task::GetTaskMutex_() {
 		return _taskMutex;

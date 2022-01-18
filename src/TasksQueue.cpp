@@ -40,7 +40,7 @@ namespace TasksLib {
 	bool TasksQueue::isInitialized() const {
 		return _isInitialized;
 	}
-    [[maybe_unused]] bool TasksQueue::isShutDown() const {
+    [[maybe_unused]] bool TasksQueue::isShuttingDown() const {
 		return _isShuttingDown;
 	}
 

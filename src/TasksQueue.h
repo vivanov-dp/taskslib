@@ -63,7 +63,7 @@ namespace TasksLib {
 	public:
 		struct Configuration {
 			Configuration();
-			Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads = 0, uint16_t numSchedulingThreads = 0);
+			Configuration(uint16_t numBlockingThreads, uint16_t numNonBlockingThreads, uint16_t numSchedulingThreads);
 
             uint16_t blockingThreads;
             uint16_t nonBlockingThreads;
@@ -71,11 +71,11 @@ namespace TasksLib {
 		};
 
 		TasksQueue();
-		TasksQueue(const Configuration& configuration);
+		explicit TasksQueue(const Configuration& configuration);
 		virtual ~TasksQueue();
 
 		[[nodiscard]] bool isInitialized() const;
-        [[maybe_unused]] [[nodiscard]] bool isShutDown() const;
+        [[maybe_unused]] [[nodiscard]] bool isShuttingDown() const;
 
         [[maybe_unused]] [[nodiscard]] uint16_t numWorkerThreads() const;
         [[maybe_unused]] [[nodiscard]] uint16_t numBlockingThreads() const;
