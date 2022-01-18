@@ -1,6 +1,6 @@
 #include <mutex>
 
-#include "Task.h"
+#include "taskslib/Task.h"
 
 namespace TasksLib {
 

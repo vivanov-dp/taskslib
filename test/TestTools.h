@@ -5,8 +5,8 @@
 #include <string>
 #include <sstream>
 
-#include "Types.h"
-#include "TaskOptions.h"
+#include "taskslib/Types.h"
+#include "taskslib/TaskOptions.h"
 
 using namespace TasksLib;
 

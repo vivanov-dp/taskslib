@@ -3,7 +3,7 @@
 #include <random>
 
 #include "TestTools.h"
-#include "Task.h"
+#include "taskslib/Task.h"
 
 namespace TasksLib {
 

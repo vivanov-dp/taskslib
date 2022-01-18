@@ -3,10 +3,10 @@
 #include <chrono>
 #include <thread>
 
-#include "Types.h"
+#include "taskslib/Types.h"
 #include "TestTools.h"
-#include "TasksQueue.h"
-#include "Task.h"
+#include "taskslib/TasksQueue.h"
+#include "taskslib/Task.h"
 
 namespace TasksLib {
 

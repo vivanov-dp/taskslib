@@ -1,9 +1,9 @@
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
-#include "Types.h"
+#include "taskslib/Types.h"
 #include "TestTools.h"
-#include "TasksThread.h"
+#include "taskslib/TasksThread.h"
 
 namespace TasksLib {
 

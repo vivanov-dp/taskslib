@@ -4,7 +4,7 @@
 #include <random>
 
 #include "TestTools.h"
-#include "TaskOptions.h"
+#include "taskslib/TaskOptions.h"
 
 namespace TasksLib {
 

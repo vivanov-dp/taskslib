@@ -2,9 +2,9 @@
 #include <chrono>
 #include <iostream>
 
-#include "TasksThread.h"
-#include "Task.h"
-#include "TasksQueue.h"
+#include "taskslib/TasksThread.h"
+#include "taskslib/Task.h"
+#include "taskslib/TasksQueue.h"
 
 #define DEFAULT_TQUEUE_BLOCKING		6
 #define DEFAULT_TQUEUE_NONBLOCKING	2

@@ -4,11 +4,11 @@
 #include <chrono>
 #include <thread>
 
-#include "Types.h"
+#include "taskslib/Types.h"
 #include "TestTools.h"
-#include "TasksQueuesContainer.h"
-#include "Task.h"
-#include "TasksQueue.h"
+#include "taskslib/TasksQueuesContainer.h"
+#include "taskslib/Task.h"
+#include "taskslib/TasksQueue.h"
 
 namespace TasksLib {
 

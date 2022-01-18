@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dist/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dist/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dist/bin)
 
-if (NOT MSVC)
+if (NOT ${MSVC})
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wshadow -Wpedantic")
     set(CMAKE_CXX_FLAGS_DEBUG "-Og -ggdb")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")

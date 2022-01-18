@@ -5,9 +5,8 @@
 #include <memory>
 #include <sstream>
 
-#include "Types.h"
 #include "TestTools.h"
-#include "ResourcePool.h"
+#include "taskslib/ResourcePool.h"
 
 namespace TasksLib {
 
