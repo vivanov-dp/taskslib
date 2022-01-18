@@ -130,6 +130,7 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < now + std::chrono::milliseconds(50)));
 
 		EXPECT_TRUE(threadSet);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		CheckStats(1, 1, -1, -1, -1, 0, "AddsTaskWorkerThread: Should run in a worker thread");
 	}
 	TEST_F(TasksQueueTest, AddsTaskMainThread) {
@@ -151,6 +152,7 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(100))));
 
 		EXPECT_FALSE(threadSet);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		CheckStats(1, -1, -1, -1, -1, 1, "AddsTaskMainThread: Shouldn't run in a worker thread");
 
 		now = std::chrono::steady_clock::now();
@@ -159,6 +161,7 @@ namespace TasksLib {
 		} while (!threadSet && (std::chrono::steady_clock::now() < (now + std::chrono::milliseconds(50))));
 
 		EXPECT_TRUE(threadSet);
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		CheckStats(1, 1, -1, -1, -1, 0, "AddsTaskMainThread: Should run in the main thread");
 	}
 	TEST_F(TasksQueueTest, IgnoresBlockingProperly) {

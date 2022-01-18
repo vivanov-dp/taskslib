@@ -125,7 +125,7 @@ namespace TasksLib {
 		++_stats.added;
 		std::unique_lock<std::mutex> lock(task->GetTaskMutex_());
 		return AddTask(task, std::move(lock));
-	};
+	}
 	void TasksQueue::Update() {
 		if (!_isInitialized || _isShuttingDown) {
 			return;
