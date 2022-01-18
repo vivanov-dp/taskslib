@@ -11,7 +11,7 @@ if (NOT MSVC)
 endif()
 
 project (TasksLib
-         VERSION 0.1.0
+         VERSION 1.0.0
          DESCRIPTION "Multithreaded task scheduling library"
          LANGUAGES CXX
     )
