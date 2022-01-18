@@ -23,7 +23,7 @@ namespace TasksLib {
 		   Creates TaskOptions with the specified set of values
 		   Usage: TaskOptions( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
 		*/
-		template <typename... Ts> TaskOptions(Ts&& ...opts);
+		template <typename... Ts> explicit TaskOptions(Ts&& ...opts);
 
 		template <typename T> void SetOptions(T&& opt);
 		template <typename T, typename... Ts> [[maybe_unused]] void SetOptions(T&& opt, Ts&& ... opts);

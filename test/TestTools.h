@@ -12,13 +12,14 @@ using namespace TasksLib;
 
 class TestWithRandom : public ::testing::Test {
 public:
-	TestWithRandom() {
-		randEng.seed(randDev());
-	}
-	~TestWithRandom() override = default;
+    std::random_device randDev;
+    std::default_random_engine randEng;
 
-	std::random_device randDev;
-	std::default_random_engine randEng;
+	TestWithRandom()
+        : randDev {}
+        , randEng { randDev() }
+    {}
+	~TestWithRandom() override = default;
 };
 TaskOptions GenerateRandomOptions(std::default_random_engine& randEng) {
 	std::uniform_int_distribution<unsigned int> distInt(1, INT_MAX);
@@ -34,20 +35,23 @@ TaskOptions GenerateRandomOptions(std::default_random_engine& randEng) {
 }
 class ExecutableTester {
 public:
-	ExecutableTester(std::default_random_engine& _randEng)
-		: randEng(_randEng)
-		, distInt1(1, INT_MAX - 20001)
-		, distInt2(1, 20000)
-	{
-		ResetTest();
-	}
-
 	std::default_random_engine randEng;
 	std::uniform_int_distribution<unsigned int> distInt1;
 	std::uniform_int_distribution<unsigned int> distInt2;
 	unsigned int test;
 	unsigned int testBase;
 	unsigned int generated;
+
+    explicit ExecutableTester(std::default_random_engine& _randEng)
+            : randEng(_randEng)
+            , distInt1(1, INT_MAX - 20001)
+            , distInt2(1, 20000)
+            , test(0)
+            , testBase(0)
+            , generated(0)
+    {
+        ResetTest();
+    }
 
 	void PerformTest() {
 		generated = distInt2(randEng);
@@ -64,7 +68,7 @@ std::string GenerateRandomString(const size_t minLen, const size_t maxLen, std::
 	std::uniform_int_distribution<unsigned short> distChar(32, 126);
 	std::stringstream buff;
 
-	for (int i = distLength(randEng); i > 0; i--) {
+	for (int i = static_cast<int>(distLength(randEng)); i > 0; i--) {
 		buff << static_cast<char>(distChar(randEng));
 	}
 

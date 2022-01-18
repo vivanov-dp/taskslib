@@ -1,8 +1,4 @@
 #include <mutex>
-#include <memory>
-#include <string>
-#include <chrono>
-#include <utility>
 
 #include "Task.h"
 
@@ -34,7 +30,7 @@ namespace TasksLib {
 	std::mutex& Task::GetTaskMutex_() {
 		return _taskMutex;
 	}
-	void Task::Execute(TasksQueue* queue, TaskPtr task) {
+	void Task::Execute(TasksQueue* queue, const TaskPtr& task) {
 		// Here *task == *this, but it is a shared_ptr supplied by the queue and holds a stake 
 		// at the point of creation of the task, which ensures that even if everything gets released,
 		// the task will still exist until it finishes
@@ -45,8 +41,8 @@ namespace TasksLib {
                 _status = TASK_WORKING;
 				ResetReschedule_();
                 // Unlock the task while executing
-                lock.release();
-				_options.executable(queue, std::move(task));
+                lock.unlock();
+				_options.executable(queue, task);
 			}
 		}
 

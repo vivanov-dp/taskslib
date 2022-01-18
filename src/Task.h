@@ -14,10 +14,8 @@ namespace TasksLib {
 		Task();
 		/* Creates Task with the specified set of options
 		   Usage: Task( TaskPriority{10}, [&](TasksQueue* queue, TaskPtr task)->void { }, ... );
-
-		   NOTE: Shut up Clang-Tidy! This is intended to be implicit and isn't even single-argument
 		*/
-		template <typename... Ts> Task(Ts&& ...opts);
+		template <typename... Ts> explicit Task(Ts&& ...opts);
 		virtual ~Task();
 
         [[maybe_unused]] [[nodiscard]] TaskStatus GetStatus() const;
@@ -34,7 +32,7 @@ namespace TasksLib {
 	protected:
 		std::mutex& GetTaskMutex_();
 
-		void Execute(TasksQueue* queue, TaskPtr task);
+		void Execute(TasksQueue* queue, const TaskPtr& task);
 
 	private:
 		TaskStatus	_status;
@@ -55,7 +53,7 @@ namespace TasksLib {
     template <> void Task::Reschedule();
 
     // These have to be defined in the .h
-    template <typename... Ts> void Task::Reschedule(Ts&& ... ts) {
+    template <typename... Ts> void Task::Reschedule(Ts&& ...ts) {
         std::lock_guard<std::mutex> lock(_taskMutex);
 
         _rescheduleOptions.SetOptions(std::forward<Ts>(ts)...);
