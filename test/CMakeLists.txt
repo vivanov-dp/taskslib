@@ -77,4 +77,9 @@ if(EXISTS ${SOURCE_DIR}/CMakeLists.txt)
 	add_test(NAME TestTasksThread COMMAND TestTasksThread)
 	add_test(NAME TestTasksQueue COMMAND TestTasksQueue)
 	add_test(NAME TestTasksQueueContainer COMMAND TestTasksQueueContainer)
+
+	set_tests_properties(
+				TestTask TestTaskOptions TestResourcePool TestTasksThread TestTasksQueue TestTasksQueueContainer
+				PROPERTIES TIMEOUT 10
+			)
 endif()
