@@ -13,8 +13,7 @@ namespace TasksLib {
 		https://stackoverflow.com/questions/27827923/c-object-pool-that-provides-items-as-smart-pointers-that-are-returned-to-pool/27837534#27837534
 	 */
 
-	template <class T>
-	struct ResourceDeleter {
+	template <class T> struct ResourceDeleter {
 		ResourceDeleter() = delete;
 		explicit ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool);
 		ResourceDeleter(const ResourceDeleter<T>& rhs) = delete;
@@ -25,8 +24,29 @@ namespace TasksLib {
 	private:
 		std::weak_ptr<ResourcePool<T>*> pool_;
 	};
-	template <class T>
-	class ResourcePool {
+
+    template <class T> ResourceDeleter<T>::ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool)
+            : pool_(pool) {}
+    template <class T> ResourceDeleter<T>::ResourceDeleter(const ResourceDeleter<T>&& rhs) noexcept
+            : pool_(std::move(rhs.pool_)) {}
+    template <class T> void ResourceDeleter<T>::operator()(T* ptr) {
+        if (!ptr) {
+            return;
+        }
+
+        std::unique_ptr<T> uPtr(ptr);
+        if (auto poolPtr = pool_.lock()) {
+            try {
+                (*poolPtr.get())->Add(std::move(uPtr));
+                return;
+            }
+            catch (...) {}			// The above is required to never throw by c++ standard
+        }
+    }
+
+    // ==========================================================================
+
+    template <class T> class ResourcePool {
 	public:
 		ResourcePool();
 		virtual ~ResourcePool();
@@ -45,27 +65,6 @@ namespace TasksLib {
                                                                 // try to release *this when destructing the object
 		std::stack<std::unique_ptr<T>> pool_;
 	};
-
-	// ==========================================================================
-
-	template <class T> ResourceDeleter<T>::ResourceDeleter(std::weak_ptr<ResourcePool<T>*> pool)
-		: pool_(pool) {}
-	template <class T> ResourceDeleter<T>::ResourceDeleter(const ResourceDeleter<T>&& rhs) noexcept
-		: pool_(std::move(rhs.pool_)) {}
-	template <class T> void ResourceDeleter<T>::operator()(T* ptr) {
-		if (!ptr) {
-			return;
-		}
-
-		std::unique_ptr<T> uptr(ptr);
-		if (auto poolPtr = pool_.lock()) {
-			try {
-				(*poolPtr.get())->Add(std::move(uptr));
-				return;
-			}
-			catch (...) {}			// The above is required to never throw by c++ standard
-		}
-	}
 
 	template <class T> ResourcePool<T>::ResourcePool() : thisPtr_(new ResourcePool<T>*{ this }) {}
 	template <class T> ResourcePool<T>::~ResourcePool() = default;
@@ -102,4 +101,40 @@ namespace TasksLib {
 	template <class T> [[maybe_unused]] size_t ResourcePool<T>::Size() const {
 		return pool_.size();
 	}
+
+    // ==========================================================================
+
+    using namespace std;
+    /*
+     * Class Singleton
+     *
+     * A trivial implementation of a glorified global std::shared_ptr.
+     * It's more of a caching mechanic than anything else, convenient to limit
+     * the number of instances of a global to 1 (yeah, I hate globals too, but when
+     * it is the Window, or the Renderer, or the Config manager it is useful).
+     *
+     * Use the static getInstance() to retrieve a pointer to the underlying instance, and
+     * create it if needed.
+     */
+    template <class T> class [[maybe_unused]] Singleton {
+    private:
+        static weak_ptr<T> _instance;
+
+    public:
+        template <typename... Args>
+        [[maybe_unused]] static shared_ptr<T>&& getInstance(Args ...args);
+    };
+
+    template <class T>
+    template <typename... Args>
+    [[maybe_unused]] shared_ptr<T>&& Singleton<T>::getInstance(Args ...args) {
+        shared_ptr<T> ptr = _instance.lock();
+
+        if (ptr.use_count() == 0) {
+            ptr = make_shared<T>(args...);
+            _instance = ptr;
+        }
+
+        return move(ptr);
+    }
 }
