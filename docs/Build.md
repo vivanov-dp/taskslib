@@ -8,19 +8,31 @@ You can take a look at [test/CMakeLists.txt](../test/CMakeLists.txt) for
 an example of how to integrate the build into your own CMake based project 
 using ExternalProject_Add() - we have done this with the 
 googletest/googlemock framework. You will probably want to build only 
-the TasksLib target in this case, not all. 
+the TasksLib target in this case, not all.
 
-If you want to build the library stand-alone (and/or the tests for it), 
-keep reading:
+Alternatively just clone the source in a subfolder in your project, or
+add it as a Git submodule and use CMake's `add_subdirectory()` to include it
+in your build. Include 'taskslib/src' in this case, not the root taskslib
+folder which will draw in the targets for testing and the gtest framework.
+
+For example if you clone it in a subfolder named `externals/taskslib`, you 
+would want to add the following line to CmakeFiles.txt: 
+
+  `add_subdirectory(externals/taskslib/src)`
+
+and then use the `TasksLib` target to add as a library to your targets, like
+this:
+
+  `target_link_libraries(<your_target PRIVATE TasksLib)`
+
+## Stand-alone build 
+
+If you want to build the library stand-alone (and/or the tests for it):
 
 - Make sure you have CMake version 3.10 or newer installed
 
 - Clone or download the repo, feel free to use the master branch or any 
-release. If using the master it is recommended to checkout a specific 
-commit by it's ID, rather than to rely on the latest version, because 
-backward incompatible changes may be introduced at any time. Use shallow 
-copy (depth=1) if you only intend to use the library and not to participate 
-in the development.
+release.
 
 - Run CMake. 
   By convention we put the output of CMake in a subdirectory, so you need to
@@ -39,7 +51,7 @@ Use the **TasksLib** target to build
 ## Tests suite ##
 
 - If you want to build and run the tests suite, build the 
-  **external-gtest** target first - this will download and build google's 
+  `external-gtest` target first - this will download and build google's 
   gtest/gmock suite in a self-contained subdirectory. This project is 
   excluded from the global solution build to save time checking and 
   updating gtest from the internet.
@@ -47,5 +59,5 @@ Use the **TasksLib** target to build
   gtest build and add the tests. It should happen automatically, but there
   is a bug in the build tools that prevents this from working with Ninja and
   MinGW.
-- Run the tests using the **All CTest** target, or manually from the 
-  **dist/bin** folder.
+- Run the tests using the `All CTest` target (`RUN TESTS` on MSVC), or 
+  manually from the `dist/bin` folder.
