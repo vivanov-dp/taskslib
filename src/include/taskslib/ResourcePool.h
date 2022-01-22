@@ -104,7 +104,6 @@ namespace TasksLib {
 
     // ==========================================================================
 
-    using namespace std;
     /*
      * Class Singleton
      *
@@ -117,24 +116,28 @@ namespace TasksLib {
      * create it if needed.
      */
     template <class T> class [[maybe_unused]] Singleton {
-    private:
-        static weak_ptr<T> _instance;
+    public:
+        [[maybe_unused]] static std::weak_ptr<T> _instance;
 
     public:
         template <typename... Args>
-        [[maybe_unused]] static shared_ptr<T>&& getInstance(Args ...args);
+        [[maybe_unused]] static std::shared_ptr<T> getInstance(Args ...args);
     };
+
+    // We have to explicitly instantiate the static data member
+    template <class T> std::weak_ptr<T> Singleton<T>::_instance;
 
     template <class T>
     template <typename... Args>
-    [[maybe_unused]] shared_ptr<T>&& Singleton<T>::getInstance(Args ...args) {
-        shared_ptr<T> ptr = _instance.lock();
+    [[maybe_unused]] std::shared_ptr<T> Singleton<T>::getInstance(Args ...args) {
+        std::shared_ptr<T> ptr = _instance.lock();
 
         if (ptr.use_count() == 0) {
-            ptr = make_shared<T>(args...);
+            ptr = std::make_shared<T>(args...);
             _instance = ptr;
         }
 
-        return move(ptr);
+        return ptr;
     }
+
 }
