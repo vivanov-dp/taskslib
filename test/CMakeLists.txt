@@ -59,9 +59,6 @@ if(EXISTS ${SOURCE_DIR}/CMakeLists.txt)
 	add_executable(TestTaskOptions TestTools.h TestTaskOptions.cpp)
 	target_link_libraries(TestTaskOptions TasksLib gtest_main)
 
-	add_executable(TestResourcePool TestTools.h TestResourcePool.cpp)
-	target_link_libraries(TestResourcePool TasksLib gmock_main)
-
 	add_executable(TestTasksThread TestTools.h TestTasksThread.cpp)
 	target_link_libraries(TestTasksThread TasksLib gmock_main)
 
@@ -71,15 +68,22 @@ if(EXISTS ${SOURCE_DIR}/CMakeLists.txt)
 	add_executable(TestTasksQueueContainer TestTools.h TestTasksQueueContainer.cpp)
 	target_link_libraries(TestTasksQueueContainer TasksLib gmock_main)
 
+	add_executable(TestResourcePool TestTools.h TestResourcePool.cpp)
+	target_link_libraries(TestResourcePool TasksLib gmock_main)
+
+	add_executable(TestSingleton TestTools.h TestSingleton.cpp)
+	target_link_libraries(TestSingleton TasksLib gtest_main)
+
 	add_test(NAME TestTask COMMAND TestTask)
 	add_test(NAME TestTaskOptions COMMAND TestTaskOptions)
-	add_test(NAME TestResourcePool COMMAND TestResourcePool)
 	add_test(NAME TestTasksThread COMMAND TestTasksThread)
 	add_test(NAME TestTasksQueue COMMAND TestTasksQueue)
 	add_test(NAME TestTasksQueueContainer COMMAND TestTasksQueueContainer)
+	add_test(NAME TestResourcePool COMMAND TestResourcePool)
+	add_test(NAME TestSingleton COMMAND TestSingleton)
 
 	set_tests_properties(
-				TestTask TestTaskOptions TestResourcePool TestTasksThread TestTasksQueue TestTasksQueueContainer
+				TestTask TestTaskOptions TestResourcePool TestTasksThread TestTasksQueue TestTasksQueueContainer TestSingleton
 				PROPERTIES TIMEOUT 10
 			)
 endif()
