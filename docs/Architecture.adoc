@@ -3,27 +3,28 @@
 :toclevels: 9
 
 [[top]]
-
-# TasksLib Architecture & Tutorial
+= TasksLib Architecture & Tutorial
 
 This is a short overview and explanation of the core concepts of the library and how to use them.
 
 toc::[]
 
 
-## 1. Threads Scheduling: The Queue
+== 1. Threads Scheduling: The Queue
 
 The library consists of a scheduler class - *TasksQueue*, and an executable wrapper class - *Task*. To use them we instantiate the queue first:
 
-```c++
+[source,c++]
+----
 #include "TasksQueue.h"
 
 TasksQueue queue({5,1,1});
-```
+----
 
 The above code will create a tasks queue with 5 regular threads, 1 non-blocking thread and 1 thread for time management. Alternatively we can split the creation and initialization phases like this:
 
-```c++
+[source,c++]
+----
 #include "TasksQueue.h"
 
 TasksQueue queue;
@@ -32,13 +33,13 @@ TasksQueue queue;
 ...
 
 queue.Initialize({5,1,1});
-```
+----
 
 In this case the queue is not going to create its threads and is not going to accept tasks before the Initialize method is called. There is also a `Shutdown()` method, which will destroy the threads and put the queue back into the uninitialized state.
 
 The job of the tasks queue is to maintain a list of executable pieces of code  - _tasks_, and run them whenever there are any free threads. If there are more tasks than threads, they will wait in the queue for their turn. The scheduler code goes trough the whole queue on each pass and it doesn't matter in which order the tasks are added to it.
 
-### Configuring the Queue
+=== Configuring the Queue
 
 The *TasksQueue* accepts a `TasksQueue::Configuration` struct in it's constructor or `Initialize()` method. This specifies the number of threads to create of each kind.
 
@@ -57,17 +58,18 @@ In order for this to work, the _TasksQueue_ must regularly receive a call to its
 
 <<top, Back to top>>
 
-## 2. Executable Code: Tasks
+== 2. Executable Code: Tasks
 
-The code we execute using the library is wrapped in *Tasks*. We can use any kind of a callable - a function, a lambda, a bind to a class method - as long as it's signature looks like this: `void Callable(TasksQueue* queue, std::shared_ptr<Task> task)`. 
+The code we execute using the library is wrapped in *Tasks*. We can use any kind of a callable - a function, a lambda, a bind to a class method - as long as it's signature looks like this: `void Callable(TasksQueue* queue, std::shared_ptr<Task> task)`.
 
-The *_queue_* parameter points to the queue that executes the task, it's guaranteed only during the execution and it's not intended to be passed and stored in data structures outside that piece of code. 
+The *_queue_* parameter points to the queue that executes the task, it's guaranteed only during the execution and it's not intended to be passed and stored in data structures outside that piece of code.
 
 The *_task_* parameter on the other hand is a shared pointer to the task itself and can be freely passed around and stored. The queue maintains an internal reference to it at all times, until the execution completes - that happens when the executable code returns without calling `task->Reschedule()` beforehand. At that point the task instance will be destroyed, unless we stored a reference to the shared task pointer somewhere else.
 
 The executable code - we can call it simply a callback - is passed as a parameter to the constructor of the *Task*. The task itself is then scheduled on the queue via it's `AddTask()` method. Here is an example:
 
-```c++
+[source,c++]
+----
 #include <iostream>
 #include "Task.h"
 #include "TasksQueue.h"
@@ -79,17 +81,18 @@ auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
 
 TaskPtr task = std::make_shared<Task>(lambda);
 queue.AddTask(task);
-```
+----
 
 The code above will create a scheduler queue, then it will create a task that prints "Hello World!" and run it in one of the queue's worker threads. As soon as the text is printed to cout, the task will complete and it will be removed from the queue.
 
 <<top, Back to top>>
 
-### Rescheduling
+=== Rescheduling
 
 The *Task* has a public method `Reschedule()`, which if called during the task's execution, will have it placed back on the queue after current callback's execution is finished, for another pass. Elaborating on the previous example:
 
-```c++
+[source,c++]
+----
 #include <iostream>
 #include "Task.h"
 #include "TasksQueue.h"
@@ -99,7 +102,7 @@ auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
   static std::string step = "Once!";
 
   std::cout << "Hello World! " << step;
-		
+
   if (step == "Once!") {
     step = "Twice!";
     task->Reschedule();
@@ -108,7 +111,7 @@ auto lambda = [](TasksQueue* queue, TaskPtr task)->void {
 
 TaskPtr task = std::make_shared<Task>(lambda);
 queue.AddTask(task);
-```
+----
 
 This task will output `"Hello World! Once!"`, then it will go on the queue, execute a second time, output `"Hello World! Twice!"` and then it will end.
 
@@ -119,7 +122,7 @@ _(NOTE: For those of you who would like to try it, bear in mind that this requir
 
 <<top, Back to top>>
 
-### Task Options
+=== Task Options
 
 Both the _Task_'s constructor and the `Reschedule()` method accept a varying number of parameters that specify task's options. The list of options and their types are found in the `Types.h` header.
 
@@ -140,18 +143,21 @@ Both the _Task_'s constructor and the `Reschedule()` method accept a varying num
 
 We can call with any number of these parameters and in any order. For example:
 
-```c++
+[source,c++]
+----
   #include "Task.h"
 
   using namespace TasksLib;
-```
-```c++
+----
+
+[source,c++]
+----
   TaskPtr task1 = std::make_shared<Task>(TaskThreadTarget::MAIN_THREAD, TaskPriority{ 12 }, TaskBlocking{ true });
   TaskPtr task2 = std::make_shared<Task>(true, 54, lambda1);
   TaskPtr task3 = std::make_shared<Task>(std::chrono::milliseconds{ 500 }, lambda1);
   TaskPtr task4 = std::make_shared<Task>(TaskExecutable{ lambda1 }, TaskDelay{ 2500 });
   TaskPtr task5 = std::make_shared<Task>(lambda3);
-```
+----
 
 *task1* - Blocking, priority is 12, executes in main thread, but since there is no executable it will simply finish right away.
 
@@ -163,7 +169,8 @@ We can call with any number of these parameters and in any order. For example:
 
 *task5* - Execute lambda3. Worker thread, priority 0, non-blocking, no sleep.
 
-```c++
+[source,c++]
+----
   auto lambda1 = [](TasksQueue* queue, TaskPtr task)->void {
     // .. do something in worker thread
 
@@ -175,11 +182,12 @@ We can call with any number of these parameters and in any order. For example:
       });
     });
   };
-```
+----
 
 *lambda1* - Runs once, then reschedules the task back on the queue, but puts it on sleep for 0.5 sec. When the sleep has passed runs second time and reschedules the task to run on the main thread with priority 150. Finishes on the third run.
 
-```c++
+[source,c++]
+----
   auto externalObjectPtr = std::make_shared<SomeExternalClass>();
   auto resultsPtr = std::make_shared<ResultsStruct>();
   auto lambda2 = [externalObjectPtr, resultsPtr](TasksQueue* queue, TaskPtr task)->void {
@@ -187,16 +195,16 @@ We can call with any number of these parameters and in any order. For example:
     externalObjectPtr->someCallbackMethod(resultsPtr);
   };
   auto lambda3 = [resultsPtr](TasksQueue* queue, TaskPtr task)->void {
-    
+
     // .. do something in a worker thread, store results in resultsPtr, then reschedule the task on main thread
     // to run lambda2
-    
+
     resultsPtr->abc = results;
     resultsPtr->xyz = results;
-    
+
     task->Reschedule(lambda2, TaskThreadTarget::MAIN_THREAD);
   };
-```
+----
 
 *lambda2&3* - Lambda3 is executed first, it does some work, then reschedules the task on the main thread to run lambda2, which invokes a callback and exits.
 
@@ -206,13 +214,14 @@ The most widely used case, at least in our code, is _task5_ with _lambda2&3_. We
 
 <<top, Back to top>>
 
-## Resource Pool ##
+== Resource Pool
 
 `template<class T> ResourcePool` is defined in ResourcePool.h and serves as a shared pool of instances of a specific class. These could be connections to a db for example, or random generator instances that require pre-seeding and take time to create.
 
 The pool has two methods - `Add()` and `Acquire()` and they work with `unique_ptr<T>`. The workflow is to create the pool, add some instances, then acquire them when needed. The acquired pointer is going to automatically return back to the pool when it gets destroyed. If there aren't any free to use instances in the pool, the `Acquire()` method returns a nullptr and it is up to the user to either wait until it returns something else, or add a new instance and use it - there is a shortcut method `AddAcquire()` that does just that.
 
-```c++
+[source,c++]
+----
 #include "ResourcePool.h"
 
 ResourcePool<ResourceClass> pool;
@@ -226,13 +235,13 @@ for (int i=0; i<10; i++) {
 
 void SomeFunction() {
   auto resource = pool.Acquire();
-  
+
   resource->DoSomething();
   resource->DoSomethingElse();
-  
+
   // just let it drop out of scope - the resource is returned to the pool
 }
-```
+----
 
 It is easier to use the auto type for the resource when acquiring it from the pool, since the actual type is complicated - `std::unique_ptr<T, TaskLib::ResourceDeleter<T>>` - the *ResourceDeleter* being the quirk that returns the resource back to the pool.
 
@@ -240,27 +249,48 @@ Naturally the *ResourcePool* is completely thread safe.
 
 <<top, Back to top>>
 
-## TasksQueues Container ##
+== Singleton
+
+*<since v1.1.0>*
+
+In `ResourcePool.h` there is a trivial implementation of a templated
+singleton class - `template <class T> class Singleton` with a static
+`::getInstance(...)` method that returns an `std::shared_ptr<T>`.
+
+We are aware of the argument that the singleton is a bad pattern and
+for many cases we tend to agree, but it has its uses in systems like
+a game engine - the utility to be able to simply include a header and
+get **the** instance of something like the main window, or the app's
+configuration manager, is indispensable.
+
+"But it can be solved with a static" - that's precisely what we are doing
+inside the Singleton class, and it is intended as a base class that allows
+us to avoid repeating the same kind of code multiple times.
+
+<<top, Back to top>>
+
+== TasksQueues Container
 
 If we need to use more than one *TasksQueue*, we can store them into a *TasksQueuesContainer* instance. It has a simple `std::unordered_map<std::string, TasksQueue>` and a few convenience methods - `CreateQueue()`, `GetQueue()` and an `Update()` which will pass the update call to all contained queues `Update()` methods.
 
-```
+[source]
+----
   #include "TasksQueuesContainer.h"
 
   TasksQueuesContainer queuesContainer;
-  
+
   queuesContainer.CreateQueue("httpRequests", {5, 1, 1});
   queuesContainer.CreateQueue("general", {15, 5, 1});
   queuesContainer.CreateQueue("pathFinding", {8, 2, 0});
-  
+
   ...
-  
+
   TasksQueue* generalQueue = queuesContainer.GetQueue("general");
-  
+
   generalQueue->AddTask(.....);
-  
+
   ...
-```
+----
 
 The above code would create a *TasksQueuesContainer*, then create and initialize 3 named *TasksQueue* s - **httpRequests**, **general** and **pathFinding**, pointers to which can be retrieved with the `GetQueue()` method.
 
