@@ -233,9 +233,7 @@ namespace TasksLib {
 			{
 				std::unique_lock<std::mutex> lockTasks(_tasksMutex);
 
-				while (!_isShuttingDown && _tasks.empty()) {
-					_tasksCondition.wait(lockTasks);
-				}
+                _tasksCondition.wait(lockTasks, [this]{ return (_isShuttingDown || (!_tasks.empty())); });
 				if (_isShuttingDown) {
 					break;
 				}
@@ -271,9 +269,9 @@ namespace TasksLib {
 			{
 				std::unique_lock<std::mutex> lockSched(_schedulerMutex);
 
-				while (!_isShuttingDown && _scheduleEarliest.load() > scheduleClock::now()) {
-					_scheduleCondition.wait(lockSched);
-				}
+                _scheduleCondition.wait(lockSched, [this]{
+                    return _isShuttingDown || (scheduleClock::now() >= _scheduleEarliest.load());
+                });
 				if (_isShuttingDown) {
 					break;
 				}
