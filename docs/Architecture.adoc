@@ -264,8 +264,9 @@ get **the** instance of something like the main window, or the app's
 configuration manager, is indispensable.
 
 "But it can be solved with a static" - that's precisely what we are doing
-inside the Singleton class, and it is intended as a base class that allows
-us to avoid repeating the same kind of code multiple times.
+inside the Singleton class, and it is intended to be used similar to the 
+ResourcePool<T> class and allow us to avoid repeating the same kind of 
+code multiple times.
 
 <<top, Back to top>>
 
