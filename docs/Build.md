@@ -23,7 +23,7 @@ would want to add the following line to CmakeFiles.txt:
 and then use the `TasksLib` target to add as a library to your targets, like
 this:
 
-  `target_link_libraries(<your_target PRIVATE TasksLib)`
+  `target_link_libraries(<your_target> PRIVATE TasksLib)`
 
 ## Stand-alone build 
 
@@ -52,7 +52,7 @@ Use the **TasksLib** target to build
 
 - If you want to build and run the tests suite, build the 
   `external-gtest` target first - this will download and build google's 
-  gtest/gmock suite in a self-contained subdirectory. This project is 
+  gtest/gmock suite in a self-contained subdirectory. This target is 
   excluded from the global solution build to save time checking and 
   updating gtest from the internet.
 - Regenerate the build system using CMake. This is required to pick up the
