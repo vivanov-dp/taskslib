@@ -137,7 +137,7 @@ namespace TasksLib {
             _instance = ptr;
         }
 
-        return ptr;
+        return std::move(ptr);
     }
 
 }
